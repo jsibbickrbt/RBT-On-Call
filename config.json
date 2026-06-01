@@ -24,7 +24,7 @@
     {
       "name": "Steve",
       "phone": "5197322587",
-      "active": true
+      "active": false
     },
     {
       "name": "Braeden",
@@ -39,12 +39,12 @@
     {
       "name": "Mitch",
       "phone": "5196080723",
-      "active": true
+      "active": false
     },
     {
       "name": "Liam",
       "phone": "5197175041",
-      "active": true
+      "active": false
     },
     {
       "name": "Dylan",
