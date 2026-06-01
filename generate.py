@@ -264,6 +264,30 @@ def build_ics(all_events, name):
         elif is_vacation(ev, name):
             output_blocks.append(make_vacation_block(ev))
 
+    # ── Safety net ────────────────────────────────────────────────────────────
+    # If any RECURRENCE-ID event reassigns a date to someone *else*, strip it
+    # from this person's calendar even if the base expansion included it.
+    # This catches any edge case where the UID-based skip above didn't fire.
+    swapped_away = set()
+    for ev in all_events:
+        if "RECURRENCE-ID" not in ev:
+            continue
+        d = date8(ev.get("DTSTART", ""))
+        if d not in seen_dates:
+            continue
+        # There's a RECURRENCE-ID event on one of our dates.
+        # If it is NOT an event for this person → the date was swapped away.
+        if not is_oncall(ev, name) and not is_vacation(ev, name):
+            swapped_away.add(d)
+            print(f"    [{name}] swap detected: {d} reassigned to '{ev.get('SUMMARY', '?')}' — removing from {name}'s calendar")
+
+    if swapped_away:
+        seen_dates -= swapped_away
+        output_blocks = [
+            b for b in output_blocks
+            if not any(f"DTSTART;VALUE=DATE:{d}" in b for d in swapped_away)
+        ]
+
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
