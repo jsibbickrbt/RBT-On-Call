@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBT On-Call Manager</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+  header { background: #1a1a2e; color: white; padding: 20px 30px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 1.4rem; font-weight: 600; }
+  header span { font-size: 1.6rem; }
+  .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+  .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: #1a1a2e; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 10px 12px; font-size: 0.8rem; text-transform: uppercase; color: #888; background: #f8f9fa; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f2f5; font-size: 0.95rem; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  input[type=text], select { border: 1px solid #ddd; border-radius: 6px; padding: 7px 10px; font-size: 0.9rem; width: 100%; outline: none; transition: border 0.2s; }
+  input[type=text]:focus, select:focus { border-color: #4f46e5; }
+  .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 22px; transition: .3s; }
+  .slider:before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s; }
+  input:checked + .slider { background: #4f46e5; }
+  input:checked + .slider:before { transform: translateX(18px); }
+  .btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+  .btn-primary { background: #4f46e5; color: white; }
+  .btn-primary:hover { background: #4338ca; }
+  .btn-danger { background: #fee2e2; color: #dc2626; }
+  .btn-danger:hover { background: #fecaca; }
+  .btn-success { background: #d1fae5; color: #059669; }
+  .btn-success:hover { background: #a7f3d0; }
+  .btn-add { background: #f0f2f5; color: #4f46e5; border: 2px dashed #c7d2fe; width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; font-size: 0.95rem; }
+  .btn-add:hover { background: #eef2ff; }
+  .actions { display: flex; gap: 8px; }
+  .token-section { background: #fff8e1; border: 1px solid #ffd54f; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; font-size: 0.9rem; }
+  .token-section input { margin-top: 8px; }
+  .save-bar { position: sticky; bottom: 0; background: white; border-top: 1px solid #e5e7eb; padding: 16px 20px; display: flex; justify-content: flex-end; gap: 12px; align-items: center; }
+  .status { font-size: 0.9rem; color: #6b7280; }
+  .status.ok { color: #059669; }
+  .status.err { color: #dc2626; }
+  .ics-link { font-size: 0.8rem; color: #4f46e5; text-decoration: none; }
+  .ics-link:hover { text-decoration: underline; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+  .badge-on { background: #d1fae5; color: #059669; }
+  .badge-off { background: #f3f4f6; color: #9ca3af; }
+</style>
+</head>
+<body>
+
+<header>
+  <span>🏗️</span>
+  <h1>RBT On-Call Manager</h1>
+</header>
+
+<div class="container">
+
+  <div class="token-section">
+    🔑 <strong>GitHub Token required to save changes</strong> — enter your PAT with <code>repo</code> + <code>workflow</code> scopes:
+    <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" />
+  </div>
+
+  <div class="card">
+    <h2>👥 Employees</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Carrier</th>
+          <th>Active</th>
+          <th>ICS Feed</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="emp-table"></tbody>
+    </table>
+    <button class="btn btn-add" onclick="addEmployee()">+ Add Employee</button>
+  </div>
+
+  <div class="card">
+    <h2>🏢 Office Notification</h2>
+    <p style="font-size:0.9rem;color:#666;margin-bottom:16px;">This number receives a daily text listing everyone who is on call.</p>
+    <table>
+      <thead><tr><th>Phone</th><th>Carrier</th><th>Active</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="text" id="office-phone" placeholder="e.g. 5195551234" /></td>
+          <td><td id="office-carrier-cell"></td></td>
+          <td>
+            <label class="toggle">
+              <input type="checkbox" id="office-active" />
+              <span class="slider"></span>
+            </label>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="save-bar">
+  <span class="status" id="save-status"></span>
+  <button class="btn btn-primary" onclick="saveConfig()">💾 Save Changes</button>
+</div>
+
+<script>
+const REPO = "jsibbickrbt/RBT-On-Call";
+const BASE_URL = "https://jsibbickrbt.github.io/RBT-On-Call";
+
+const CARRIERS = ["bell","rogers","telus","fido","freedom","virgin","koodo","chatr","public"];
+
+let config = {};
+
+function carrierSelect(selected, id) {
+  return `<select id="${id}">${CARRIERS.map(c =>
+    `<option value="${c}" ${c === selected ? "selected" : ""}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
+  ).join("")}</select>`;
+}
+
+function renderEmployees() {
+  const tbody = document.getElementById("emp-table");
+  tbody.innerHTML = "";
+  (config.employees || []).forEach((emp, i) => {
+    const icsUrl = `${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics`;
+    tbody.innerHTML += `
+      <tr id="emp-row-${i}">
+        <td><input type="text" id="emp-name-${i}" value="${emp.name}" /></td>
+        <td><input type="text" id="emp-phone-${i}" value="${emp.phone || ""}" placeholder="10 digits" /></td>
+        <td>${carrierSelect(emp.carrier || "bell", `emp-carrier-${i}`)}</td>
+        <td>
+          <label class="toggle">
+            <input type="checkbox" id="emp-active-${i}" ${emp.active !== false ? "checked" : ""} />
+            <span class="slider"></span>
+          </label>
+        </td>
+        <td><a class="ics-link" href="${icsUrl}" target="_blank">📅 Subscribe</a></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-danger" onclick="removeEmployee(${i})">✕</button>
+          </div>
+        </td>
+      </tr>`;
+  });
+}
+
+function renderOffice() {
+  const office = config.office || {};
+  document.getElementById("office-phone").value = office.phone || "";
+  document.getElementById("office-active").checked = office.active || false;
+  const cell = document.getElementById("office-carrier-cell");
+  cell.innerHTML = carrierSelect(office.carrier || "bell", "office-carrier");
+}
+
+function addEmployee() {
+  config.employees.push({ name: "New Employee", phone: "", carrier: "bell", active: true });
+  renderEmployees();
+}
+
+function removeEmployee(i) {
+  if (confirm(`Remove ${config.employees[i].name}?`)) {
+    config.employees.splice(i, 1);
+    renderEmployees();
+  }
+}
+
+function collectConfig() {
+  const employees = (config.employees || []).map((_, i) => ({
+    name:    document.getElementById(`emp-name-${i}`).value.trim(),
+    phone:   document.getElementById(`emp-phone-${i}`).value.trim(),
+    carrier: document.getElementById(`emp-carrier-${i}`).value,
+    active:  document.getElementById(`emp-active-${i}`).checked,
+  }));
+  return {
+    ...config,
+    employees,
+    office: {
+      phone:   document.getElementById("office-phone").value.trim(),
+      carrier: document.getElementById("office-carrier").value,
+      active:  document.getElementById("office-active").checked,
+    }
+  };
+}
+
+async function saveConfig() {
+  const token = document.getElementById("gh-token").value.trim();
+  if (!token) { alert("Please enter your GitHub token first."); return; }
+
+  const status = document.getElementById("save-status");
+  status.className = "status";
+  status.textContent = "Saving...";
+
+  const newConfig = collectConfig();
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(newConfig, null, 2))));
+
+  try {
+    // Get current SHA of config.json
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json`, {
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json" }
+    });
+    const data = await r.json();
+    const sha = data.sha;
+
+    // Push updated config
+    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json`, {
+      method: "PUT",
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Update config via web UI", content, sha })
+    });
+
+    if (res.ok) {
+      status.className = "status ok";
+      status.textContent = "✅ Saved! Calendar will refresh at next scheduled run.";
+      config = newConfig;
+    } else {
+      const err = await res.json();
+      status.className = "status err";
+      status.textContent = "❌ Error: " + (err.message || "Unknown error");
+    }
+  } catch (e) {
+    status.className = "status err";
+    status.textContent = "❌ " + e.message;
+  }
+}
+
+// Load config from GitHub on page load
+async function loadConfig() {
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json`, {
+      headers: { Accept: "application/vnd.github+json" }
+    });
+    const data = await r.json();
+    config = JSON.parse(atob(data.content.replace(/\n/g, "")));
+    renderEmployees();
+    renderOffice();
+  } catch (e) {
+    document.getElementById("save-status").textContent = "Failed to load config: " + e.message;
+  }
+}
+
+loadConfig();
+</script>
+</body>
+</html>

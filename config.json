@@ -1,0 +1,23 @@
+{
+  "calendar_url": "https://outlook.office365.com/owa/calendar/8252775f384440778c40dea39da6b29a@rbtautomate.com/d1969139dcfb43a29f8fe347b57e672317692357886224327392/calendar.ics",
+  "gmail_user": "j.rbtelectrical@gmail.com",
+  "employees": [
+    {
+      "name": "Jordan",
+      "phone": "2263872175",
+      "carrier": "bell",
+      "active": true
+    },
+    {
+      "name": "Jamie",
+      "phone": "5198295542",
+      "carrier": "bell",
+      "active": true
+    }
+  ],
+  "office": {
+    "phone": "",
+    "carrier": "",
+    "active": false
+  }
+}
