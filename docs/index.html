@@ -135,7 +135,8 @@ function renderEmployees() {
   const tbody = document.getElementById("emp-table");
   tbody.innerHTML = "";
   (config.employees || []).forEach((emp, i) => {
-    const icsUrl = `${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics`;
+    const icsUrl  = `${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics`;
+    const webcal  = icsUrl.replace("https://", "webcal://");
     tbody.innerHTML += `
       <tr id="emp-row-${i}">
         <td><input type="text" id="emp-name-${i}" value="${emp.name}" onchange="updateIcsRow(${i})" /></td>
@@ -157,7 +158,7 @@ function renderEmployees() {
             <span style="font-size:0.8rem;color:#888;white-space:nowrap;">📅 ICS:</span>
             <input type="text" id="ics-url-${i}" value="${icsUrl}" readonly onclick="this.select()" />
             <button class="btn-copy" onclick="copyIcs(${i})">Copy</button>
-            <a class="btn-copy" href="${icsUrl}" target="_blank" style="text-decoration:none;">Open</a>
+            <a class="btn-copy" id="ics-open-${i}" href="${webcal}" style="text-decoration:none;">📲 Subscribe</a>
           </div>
         </td>
       </tr>`;
@@ -291,11 +292,11 @@ function copyIcs(i) {
 }
 
 function updateIcsRow(i) {
-  const name = document.getElementById(`emp-name-${i}`).value.trim().toLowerCase();
-  const url = `${BASE_URL}/${name}_schedule.ics`;
+  const name   = document.getElementById(`emp-name-${i}`).value.trim().toLowerCase();
+  const url    = `${BASE_URL}/${name}_schedule.ics`;
+  const webcal = url.replace("https://", "webcal://");
   document.getElementById(`ics-url-${i}`).value = url;
-  const openBtn = document.getElementById(`ics-url-${i}`).nextElementSibling.nextElementSibling;
-  openBtn.href = url;
+  document.getElementById(`ics-open-${i}`).href  = webcal;
 }
 
 loadToken();
