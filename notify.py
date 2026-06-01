@@ -150,6 +150,7 @@ def main():
             if not emp.get("active", True):
                 continue
             name     = emp["name"]
+            phone    = emp.get("phone", "")
             ics_file = f"docs/{name.lower()}_schedule.ics"
             if not os.path.exists(ics_file):
                 print(f"  No ICS for {name}, skipping conflict check")
@@ -161,6 +162,15 @@ def main():
                 dates_str = ", ".join(format_date(d) for d in conflicts)
                 all_conflicts.append(f"{name}: {dates_str}")
                 print(f"  {name} has conflicts on: {dates_str}")
+                # Text the individual
+                if phone:
+                    try:
+                        personal_msg = (f"⚠️ Hi {name}, you are scheduled on call during your vacation on: "
+                                        f"{dates_str}. Please coordinate with Jordan.")
+                        send_sms(sid, token, from_num, phone, personal_msg)
+                        print(f"  Personal conflict alert sent to {name}")
+                    except Exception as e:
+                        print(f"  Failed to text {name}: {e}")
             else:
                 print(f"  {name}: no conflicts")
 
@@ -283,6 +293,7 @@ def main():
         if not emp.get("active", True):
             continue
         name     = emp["name"]
+        phone    = emp.get("phone", "")
         ics_file = f"docs/{name.lower()}_schedule.ics"
         if not os.path.exists(ics_file):
             continue
@@ -293,6 +304,15 @@ def main():
             dates_str = ", ".join(format_date(d) for d in conflicts)
             all_conflicts.append(f"{name}: {dates_str}")
             print(f"  Conflict — {name} on call during vacation: {dates_str}")
+            # Text the individual
+            if phone:
+                try:
+                    personal_msg = (f"⚠️ Hi {name}, you are scheduled on call during your vacation on: "
+                                    f"{dates_str}. Please coordinate with Jordan.")
+                    send_sms(sid, token, from_num, phone, personal_msg)
+                    print(f"  Personal conflict alert sent to {name}")
+                except Exception as e:
+                    print(f"  Failed to text {name}: {e}")
 
     if all_conflicts and jordan_phone:
         msg = "⚠️ On-Call/Vacation Conflicts:\n" + "\n".join(all_conflicts)
