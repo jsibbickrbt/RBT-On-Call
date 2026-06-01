@@ -304,6 +304,14 @@
   .cal-event.today   { background:#fefce8; border-left:3px solid #d97706; }
   .cal-date { font-weight:600; font-size:0.875rem; min-width:130px; color:#1a2e14; }
   .cal-label { font-size:0.82rem; color:#6b7280; }
+  .conflict-badge {
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:0.72rem; background:#fef2f2; color:#dc2626;
+    border:1px solid #fecaca; padding:2px 8px; border-radius:99px;
+    font-weight:600; cursor:pointer; white-space:nowrap;
+    transition: background 0.15s;
+  }
+  .conflict-badge:hover { background:#fee2e2; }
   .cal-today-badge {
     font-size:0.65rem; background:#fde047; color:#854d0e;
     padding:1px 6px; border-radius:99px; font-weight:700; margin-left:6px;
@@ -447,7 +455,12 @@ function renderEmployees() {
     tbody.innerHTML += `
       <tr id="emp-row-${i}">
         <td style="color:#9ca3af;font-size:0.85rem;font-weight:600;text-align:center;">${i + 1}</td>
-        <td><input type="text" id="emp-name-${i}" value="${emp.name}" onchange="updateIcsRow(${i})" style="max-width:160px;" /></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="emp-name-${i}" value="${emp.name}" onchange="updateIcsRow(${i})" style="max-width:160px;" />
+            <span id="conflict-badge-${i}"></span>
+          </div>
+        </td>
         <td><input type="text" id="emp-phone-${i}" value="${emp.phone || ""}" placeholder="+12265551234" style="max-width:180px;" /></td>
         <td>
           <label class="toggle">
@@ -793,8 +806,51 @@ async function checkConflicts() {
   }
 }
 
+function findIcsConflicts(events) {
+  const todayD = today8();
+  const oncallDates = [];
+  const vacationRanges = [];
+  events.forEach(ev => {
+    const s = ev.summary.toLowerCase();
+    const isOncall  = (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
+    const isVacation = s.includes("vacation");
+    if (isOncall  && ev.dtstart >= todayD) oncallDates.push(ev.dtstart);
+    if (isVacation && ev.dtstart)          vacationRanges.push({ start: ev.dtstart, end: ev.dtend || ev.dtstart });
+  });
+  return oncallDates.filter(d =>
+    vacationRanges.some(v => v.start <= d && d < v.end)
+  );
+}
+
+async function checkAllConflicts() {
+  const emps = config.employees || [];
+  for (let i = 0; i < emps.length; i++) {
+    const badge = document.getElementById(`conflict-badge-${i}`);
+    if (!badge) continue;
+    const name = emps[i].name;
+    try {
+      const text = await (await fetch(`${BASE_URL}/${name.toLowerCase()}_schedule.ics?cb=${Date.now()}`)).text();
+      const events = parseIcsEvents(text);
+      const conflicts = findIcsConflicts(events);
+      if (conflicts.length > 0) {
+        const dates = conflicts.map(d => formatDate(d)).join(", ");
+        badge.innerHTML = `<span class="conflict-badge" title="On call during vacation: ${dates}" onclick="viewCalendar('${name}')">⚠️ Conflict: ${dates}</span>`;
+      } else {
+        badge.innerHTML = "";
+      }
+    } catch(e) {
+      badge.innerHTML = "";
+    }
+  }
+}
+
+async function loadConfigAndCheck() {
+  await loadConfig();
+  checkAllConflicts();
+}
+
 loadToken();
-loadConfig();
+loadConfigAndCheck();
 </script>
 </body>
 </html>
