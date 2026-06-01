@@ -13,11 +13,17 @@
       "phone": "5198295542",
       "carrier": "bell",
       "active": true
+    },
+    {
+      "name": "Dave",
+      "phone": "2268024291",
+      "carrier": "koodo",
+      "active": true
     }
   ],
   "office": {
-    "phone": "",
-    "carrier": "",
-    "active": false
+    "phone": "5197572040",
+    "carrier": "bell",
+    "active": true
   }
 }
