@@ -918,7 +918,7 @@ async function checkAllConflicts() {
         const holidays = buildHolidayMap(years);
         const holidayOncall = oncall.filter(e => holidays[e.dtstart]);
         if (holidayOncall.length > 0) {
-          const names = [...new Set(holidayOncall.map(e => holidays[e.dtstart].replace(" 🍁",")))].join(", ");
+          const names = [...new Set(holidayOncall.map(e => holidays[e.dtstart].replace(" 🍁", "")))].join(", ");
           hbadge.innerHTML = `<span class="holiday-badge" title="On call on a stat holiday" onclick="viewCalendar('${name}')">🍁 ${names}</span>`;
         } else {
           hbadge.innerHTML = "";
