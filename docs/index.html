@@ -744,21 +744,16 @@ function getCanadianHolidays(year) {
   // Fixed holidays
   holidays[d8(year,1,1)]  = "New Year's Day 🍁";
   holidays[d8(year,7,1)]  = "Canada Day 🍁";
-  holidays[d8(year,11,11)]= "Remembrance Day 🍁";
   holidays[d8(year,12,25)]= "Christmas Day 🍁";
   holidays[d8(year,12,26)]= "Boxing Day 🍁";
 
   // Ontario fixed
   holidays[d8(year,2,nthMonday(year,2,3))] = "Family Day 🍁";
   holidays[d8(year,goodFriday.getMonth()+1,goodFriday.getDate())] = "Good Friday 🍁";
-  holidays[d8(year,easterMonday.getMonth()+1,easterMonday.getDate())] = "Easter Monday 🍁";
 
   // Victoria Day: last Monday before May 25
   const vd = new Date(year,4,25); vd.setDate(25-((vd.getDay()+6)%7||7));
   holidays[d8(year,5,vd.getDate())] = "Victoria Day 🍁";
-
-  // Civic Holiday: 1st Monday of August (Ontario)
-  holidays[d8(year,8,nthMonday(year,8,1))] = "Civic Holiday 🍁";
 
   // Labour Day: 1st Monday of September
   holidays[d8(year,9,nthMonday(year,9,1))] = "Labour Day 🍁";
