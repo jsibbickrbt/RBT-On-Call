@@ -202,6 +202,7 @@ function renderEmployees() {
             <button class="btn-copy" onclick="copyIcs(${i})">Copy</button>
             <a class="btn-copy" id="ics-open-${i}" href="${webcal}" style="text-decoration:none;">📲 Subscribe</a>
             <button class="btn-test" id="test-btn-${i}" onclick="sendTestText(${i}, '${emp.name}')">💬 Test Text</button>
+            <button class="btn-test" id="cal-btn-${i}" onclick="sendCalendarLink(${i}, '${emp.name}')" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">📅 Send Link</button>
             <button class="btn-view" onclick="viewCalendar('${emp.name}')">📆 View</button>
           </div>
         </td>
@@ -355,6 +356,38 @@ async function loadConfig() {
     renderOffice();
   } catch (e) {
     document.getElementById("save-status").textContent = "Failed to load config: " + e.message;
+  }
+}
+
+async function sendCalendarLink(i, name) {
+  const token = document.getElementById("gh-token").value.trim();
+  if (!token) { alert("Please enter your GitHub token first."); return; }
+  if (!confirm(`Send calendar subscription link to ${name} via SMS?`)) return;
+
+  const btn = document.getElementById(`cal-btn-${i}`);
+  btn.textContent = "Sending...";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
+      method: "POST",
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ ref: "main", inputs: { test_user: "", send_calendar: name } })
+    });
+    if (res.ok || res.status === 204) {
+      btn.textContent = "✅ Sent!";
+      btn.classList.add("sent");
+      setTimeout(() => { btn.textContent = "📅 Send Link"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
+    } else {
+      const err = await res.json();
+      alert("Error: " + (err.message || res.status));
+      btn.textContent = "📅 Send Link";
+      btn.disabled = false;
+    }
+  } catch(e) {
+    alert("Error: " + e.message);
+    btn.textContent = "📅 Send Link";
+    btn.disabled = false;
   }
 }
 

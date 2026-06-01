@@ -40,10 +40,32 @@ def send_sms(sid, token, from_num, to_num, body):
     return resp.status
 
 def main():
-    sid      = os.environ.get("TWILIO_ACCOUNT_SID", "")
-    token    = os.environ.get("TWILIO_AUTH_TOKEN", "")
-    from_num = os.environ.get("TWILIO_FROM", "")
-    today    = date.today().strftime("%Y%m%d")
+    sid           = os.environ.get("TWILIO_ACCOUNT_SID", "")
+    token         = os.environ.get("TWILIO_AUTH_TOKEN", "")
+    from_num      = os.environ.get("TWILIO_FROM", "")
+    today         = date.today().strftime("%Y%m%d")
+    send_calendar = os.environ.get("SEND_CALENDAR", "").strip().lower()
+
+    # SEND CALENDAR LINK MODE
+    if send_calendar:
+        base_url = "https://jsibbickrbt.github.io/RBT-On-Call"
+        for emp in CONFIG["employees"]:
+            if emp["name"].lower() == send_calendar and emp.get("active", True):
+                name  = emp["name"]
+                phone = emp.get("phone", "")
+                if phone:
+                    ics_url = f"{base_url}/{name.lower()}_schedule.ics"
+                    webcal  = ics_url.replace("https://", "webcal://")
+                    msg = (f"Hi {name}! Here is your RBT on-call calendar link.\n\n"
+                           f"On iPhone/iPad: tap the link to subscribe in Calendar\n{webcal}\n\n"
+                           f"On Android/other: add this URL in your calendar app\n{ics_url}")
+                    status = send_sms(sid, token, from_num, phone, msg)
+                    print(f"Calendar link sent to {name} ({phone}): {status}")
+                else:
+                    print(f"No phone for {name}")
+                return
+        print(f"Employee '{send_calendar}' not found")
+        return
 
     # TEST MODE
     test_user = os.environ.get("TEST_USER", "").strip().lower()

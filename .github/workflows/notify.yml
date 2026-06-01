@@ -9,6 +9,10 @@ on:
         description: 'Send test text to this employee (or "office"). Leave blank for normal run.'
         required: false
         default: ''
+      send_calendar:
+        description: 'Send calendar subscription link to this employee (name). Leave blank to skip.'
+        required: false
+        default: ''
 
 jobs:
   notify:
@@ -29,4 +33,5 @@ jobs:
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
           TEST_USER: ${{ github.event.inputs.test_user }}
+          SEND_CALENDAR: ${{ github.event.inputs.send_calendar }}
         run: python notify.py
