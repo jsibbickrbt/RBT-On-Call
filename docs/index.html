@@ -727,52 +727,80 @@ function formatDate(d8) {
 
 function today8() { return new Date().toISOString().slice(0,10).replace(/-/g,""); }
 
-// Canadian (Ontario) statutory holidays
+// Canadian (Ontario) paid statutory holidays
+function pad2(n) { return String(n).padStart(2, "0"); }
+function ymd(y, m, d) { return "" + y + pad2(m) + pad2(d); }
+
+function nthWeekdayOfMonth(year, month, weekday, n) {
+  // weekday: 0=Sun,1=Mon...  n: 1=first, 2=second etc
+  var d = new Date(year, month - 1, 1);
+  var diff = (weekday - d.getDay() + 7) % 7;
+  d.setDate(1 + diff + (n - 1) * 7);
+  return d.getDate();
+}
+
+function easterSunday(year) {
+  var a = year % 19;
+  var b = Math.floor(year / 100);
+  var c = year % 100;
+  var d = Math.floor(b / 4);
+  var e = b % 4;
+  var f = Math.floor((b + 8) / 25);
+  var g = Math.floor((b - f + 1) / 3);
+  var h = (19 * a + b - d - g + 15) % 30;
+  var ii = Math.floor(c / 4);
+  var k = c % 4;
+  var l = (32 + 2 * e + 2 * ii - h - k) % 7;
+  var m = Math.floor((a + 11 * h + 22 * l) / 451);
+  var month = Math.floor((h + l - 7 * m + 114) / 31);
+  var day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
 function getCanadianHolidays(year) {
-  const holidays = {};
-  const d8 = (y,m,d) => `${y}${String(m).padStart(2,"0")}${String(d).padStart(2,"0")}`;
-  const nthMonday = (y,m,n) => { const d=new Date(y,m-1,1); d.setDate(1+(((8-d.getDay())%7)||7)+(n-1)*7); return d.getDate(); };
-  const lastMonday = (y,m) => { const d=new Date(y,m,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.getDate(); };
+  var holidays = {};
 
-  // Easter (Anonymous Gregorian algorithm)
-  const easter = (y) => {
-    const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m2=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m2+114)/31),day=((h+l-7*m2+114)%31)+1;
-    return {month,day};
-  };
-  const {month:em,day:ed}=easter(year);
-  const easterDate=new Date(year,em-1,ed);
-  const goodFriday=new Date(easterDate); goodFriday.setDate(easterDate.getDate()-2);
-  const easterMonday=new Date(easterDate); easterMonday.setDate(easterDate.getDate()+1);
+  // New Year's Day
+  holidays[ymd(year, 1, 1)] = "New Year's Day";
 
-  // Fixed holidays
-  holidays[d8(year,1,1)]  = "New Year's Day 🍁";
-  holidays[d8(year,7,1)]  = "Canada Day 🍁";
-  holidays[d8(year,12,25)]= "Christmas Day 🍁";
-  holidays[d8(year,12,26)]= "Boxing Day 🍁";
+  // Family Day - 3rd Monday of February
+  holidays[ymd(year, 2, nthWeekdayOfMonth(year, 2, 1, 3))] = "Family Day";
 
-  // Ontario fixed
-  holidays[d8(year,2,nthMonday(year,2,3))] = "Family Day 🍁";
-  holidays[d8(year,goodFriday.getMonth()+1,goodFriday.getDate())] = "Good Friday 🍁";
+  // Good Friday - 2 days before Easter
+  var easter = easterSunday(year);
+  var gf = new Date(easter);
+  gf.setDate(easter.getDate() - 2);
+  holidays[ymd(year, gf.getMonth() + 1, gf.getDate())] = "Good Friday";
 
-  // Victoria Day: last Monday before May 25
-  const vd = new Date(year,4,25); vd.setDate(25-((vd.getDay()+6)%7||7));
-  holidays[d8(year,5,vd.getDate())] = "Victoria Day 🍁";
+  // Victoria Day - last Monday before May 25
+  var vd = new Date(year, 4, 24);
+  while (vd.getDay() !== 1) { vd.setDate(vd.getDate() - 1); }
+  holidays[ymd(year, 5, vd.getDate())] = "Victoria Day";
 
-  // Civic Holiday: 1st Monday of August
-  holidays[d8(year,8,nthMonday(year,8,1))] = "Civic Holiday 🍁";
+  // Canada Day
+  holidays[ymd(year, 7, 1)] = "Canada Day";
 
-  // Labour Day: 1st Monday of September
-  holidays[d8(year,9,nthMonday(year,9,1))] = "Labour Day 🍁";
+  // Civic Holiday - 1st Monday of August
+  holidays[ymd(year, 8, nthWeekdayOfMonth(year, 8, 1, 1))] = "Civic Holiday";
 
-  // Thanksgiving: 2nd Monday of October
-  holidays[d8(year,10,nthMonday(year,10,2))] = "Thanksgiving 🍁";
+  // Labour Day - 1st Monday of September
+  holidays[ymd(year, 9, nthWeekdayOfMonth(year, 9, 1, 1))] = "Labour Day";
+
+  // Thanksgiving - 2nd Monday of October
+  holidays[ymd(year, 10, nthWeekdayOfMonth(year, 10, 1, 2))] = "Thanksgiving";
+
+  // Christmas Day
+  holidays[ymd(year, 12, 25)] = "Christmas Day";
+
+  // Boxing Day
+  holidays[ymd(year, 12, 26)] = "Boxing Day";
 
   return holidays;
 }
 
 function buildHolidayMap(years) {
-  let map = {};
-  years.forEach(y => Object.assign(map, getCanadianHolidays(y)));
+  var map = {};
+  years.forEach(function(y) { Object.assign(map, getCanadianHolidays(y)); });
   return map;
 }
 
@@ -802,7 +830,7 @@ async function viewCalendar(name) {
         const h=holidays[ev.dtstart];
         const cls=t?"today":c?"conflict":"oncall";
         const extra=(c?`<span class="cal-conflict-label">⚠️ Vacation conflict</span>`:"")+
-                    (h?`<span class="cal-holiday-label" title="${h}">${h}</span>`:"");
+                    (h?`<span class="cal-holiday-label" title="${h}">&#x1F341; ${h}</span>`:"");
         html+=`<div class="cal-event ${cls}"><div class="cal-date">${formatDate(ev.dtstart)}${t?`<span class="cal-today-badge">TODAY</span>`:""}</div><div class="cal-label">${ev.summary}${extra}</div></div>`;
       });
     }
@@ -918,8 +946,8 @@ async function checkAllConflicts() {
         const holidays = buildHolidayMap(years);
         const holidayOncall = oncall.filter(e => holidays[e.dtstart]);
         if (holidayOncall.length > 0) {
-          const names = [...new Set(holidayOncall.map(e => holidays[e.dtstart].replace(" 🍁", "")))].join(", ");
-          hbadge.innerHTML = `<span class="holiday-badge" title="On call on a stat holiday" onclick="viewCalendar('${name}')">🍁 ${names}</span>`;
+          const names = [...new Set(holidayOncall.map(e => holidays[e.dtstart]))].join(", ");
+          hbadge.innerHTML = `<span class="holiday-badge" title="On call on a stat holiday" onclick="viewCalendar('${name}')">&#x1F341; ${names}</span>`;
         } else {
           hbadge.innerHTML = "";
         }
