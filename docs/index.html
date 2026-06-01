@@ -84,7 +84,6 @@
         <tr>
           <th>Name</th>
           <th>Phone</th>
-          <th>Carrier</th>
           <th>Active</th>
           <th></th>
         </tr>
@@ -98,11 +97,10 @@
     <h2>🏢 Office Notification</h2>
     <p style="font-size:0.9rem;color:#666;margin-bottom:16px;">This number receives a daily text listing everyone who is on call.</p>
     <table>
-      <thead><tr><th>Phone</th><th>Carrier</th><th>Active</th></tr></thead>
+      <thead><tr><th>Phone</th><th>Active</th></tr></thead>
       <tbody>
         <tr>
-          <td><input type="text" id="office-phone" placeholder="e.g. 5195551234" /></td>
-          <td><td id="office-carrier-cell"></td></td>
+          <td><input type="text" id="office-phone" placeholder="+15195551234" /></td>
           <td>
             <label class="toggle">
               <input type="checkbox" id="office-active" />
@@ -144,8 +142,7 @@ function renderEmployees() {
     tbody.innerHTML += `
       <tr id="emp-row-${i}">
         <td><input type="text" id="emp-name-${i}" value="${emp.name}" onchange="updateIcsRow(${i})" /></td>
-        <td><input type="text" id="emp-phone-${i}" value="${emp.phone || ""}" placeholder="10 digits" /></td>
-        <td>${carrierSelect(emp.carrier || "bell", `emp-carrier-${i}`)}</td>
+        <td><input type="text" id="emp-phone-${i}" value="${emp.phone || ""}" placeholder="+12265551234" /></td>
         <td>
           <label class="toggle">
             <input type="checkbox" id="emp-active-${i}" ${emp.active !== false ? "checked" : ""} />
@@ -172,10 +169,8 @@ function renderEmployees() {
 
 function renderOffice() {
   const office = config.office || {};
-  document.getElementById("office-phone").value = office.phone || "";
+  document.getElementById("office-phone").value   = office.phone || "";
   document.getElementById("office-active").checked = office.active || false;
-  const cell = document.getElementById("office-carrier-cell");
-  cell.innerHTML = carrierSelect(office.carrier || "bell", "office-carrier");
 }
 
 function addEmployee() {
@@ -192,18 +187,16 @@ function removeEmployee(i) {
 
 function collectConfig() {
   const employees = (config.employees || []).map((_, i) => ({
-    name:    document.getElementById(`emp-name-${i}`).value.trim(),
-    phone:   document.getElementById(`emp-phone-${i}`).value.trim(),
-    carrier: document.getElementById(`emp-carrier-${i}`).value,
-    active:  document.getElementById(`emp-active-${i}`).checked,
+    name:   document.getElementById(`emp-name-${i}`).value.trim(),
+    phone:  document.getElementById(`emp-phone-${i}`).value.trim(),
+    active: document.getElementById(`emp-active-${i}`).checked,
   }));
   return {
     ...config,
     employees,
     office: {
-      phone:   document.getElementById("office-phone").value.trim(),
-      carrier: document.getElementById("office-carrier").value,
-      active:  document.getElementById("office-active").checked,
+      phone:  document.getElementById("office-phone").value.trim(),
+      active: document.getElementById("office-active").checked,
     }
   };
 }
