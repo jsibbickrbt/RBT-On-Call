@@ -28,9 +28,24 @@ def main():
         office = CONFIG.get("office", {})
         phone  = office.get("phone", "")
         if phone:
-            names = ", ".join(e["name"] for e in CONFIG["employees"] if e.get("active", True))
-            status = send_sms(sid, token, from_num, phone, f"Test - On call today: {names}")
-            print(f"Test text sent to office ({phone}): {status}")
+            # Check ICS files to find who is actually on call today
+            oncall_today = []
+            for emp in CONFIG["employees"]:
+                if not emp.get("active", True):
+                    continue
+                ics_file = f"docs/{emp['name'].lower()}_schedule.ics"
+                if os.path.exists(ics_file):
+                    with open(ics_file) as f:
+                        content = f.read()
+                    if f"DTSTART;VALUE=DATE:{today}" in content:
+                        oncall_today.append(emp["name"])
+            if oncall_today:
+                names = ", ".join(oncall_today)
+                msg = f"Test - On call today: {names}"
+            else:
+                msg = "Test - Nobody is on call today"
+            status = send_sms(sid, token, from_num, phone, msg)
+            print(f"Test text sent to office ({phone}): {status} — {msg}")
         else:
             print("No office phone configured")
         return
