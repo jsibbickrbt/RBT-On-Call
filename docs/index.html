@@ -305,6 +305,8 @@
   .cal-event.conflict { background:#fff7ed; border-left:3px solid #f97316; }
   .cal-conflict-label { font-size:0.72rem; color:#ea580c; font-weight:600; margin-left:6px; }
   .cal-holiday-label  { font-size:0.72rem; color:#b45309; font-weight:600; margin-left:6px; background:#fef3c7; border:1px solid #fde68a; padding:1px 6px; border-radius:99px; }
+  .holiday-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; background:#fef3c7; color:#92400e; border:1px solid #fde68a; padding:2px 8px; border-radius:99px; font-weight:600; cursor:pointer; white-space:nowrap; transition:background 0.15s; }
+  .holiday-badge:hover { background:#fde68a; }
   .cal-date { font-weight:600; font-size:0.875rem; min-width:130px; color:#1a2e14; }
   .cal-label { font-size:0.82rem; color:#6b7280; }
   .conflict-badge {
@@ -462,6 +464,7 @@ function renderEmployees() {
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <input type="text" id="emp-name-${i}" value="${emp.name}" onchange="updateIcsRow(${i})" style="max-width:160px;" />
             <span id="conflict-badge-${i}"></span>
+            <span id="holiday-badge-${i}"></span>
           </div>
         </td>
         <td><input type="text" id="emp-phone-${i}" value="${emp.phone || ""}" placeholder="+12265551234" style="max-width:180px;" /></td>
@@ -887,11 +890,14 @@ async function checkAllConflicts() {
   const emps = config.employees || [];
   for (let i = 0; i < emps.length; i++) {
     const badge = document.getElementById(`conflict-badge-${i}`);
+    const hbadge = document.getElementById(`holiday-badge-${i}`);
     if (!badge) continue;
     const name = emps[i].name;
     try {
       const text = await (await fetch(`${BASE_URL}/${name.toLowerCase()}_schedule.ics?cb=${Date.now()}`)).text();
       const events = parseIcsEvents(text);
+
+      // Conflict badges
       const conflicts = findIcsConflicts(events);
       if (conflicts.length > 0) {
         const dates = conflicts.map(d => formatDate(d)).join(", ");
@@ -899,8 +905,28 @@ async function checkAllConflicts() {
       } else {
         badge.innerHTML = "";
       }
+
+      // Holiday badges
+      if (hbadge) {
+        const todayD = today8();
+        const oncall = events.filter(e => {
+          const s = e.summary.toLowerCase();
+          return (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation") && e.dtstart >= todayD;
+        });
+        const years = [...new Set(oncall.map(e => +e.dtstart.slice(0,4)))];
+        if (!years.includes(new Date().getFullYear())) years.push(new Date().getFullYear());
+        const holidays = buildHolidayMap(years);
+        const holidayOncall = oncall.filter(e => holidays[e.dtstart]);
+        if (holidayOncall.length > 0) {
+          const names = [...new Set(holidayOncall.map(e => holidays[e.dtstart].replace(" 🍁",")))].join(", ");
+          hbadge.innerHTML = `<span class="holiday-badge" title="On call on a stat holiday" onclick="viewCalendar('${name}')">🍁 ${names}</span>`;
+        } else {
+          hbadge.innerHTML = "";
+        }
+      }
     } catch(e) {
       badge.innerHTML = "";
+      if (hbadge) hbadge.innerHTML = "";
     }
   }
 }
