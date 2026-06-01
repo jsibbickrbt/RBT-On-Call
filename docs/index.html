@@ -63,9 +63,14 @@
 
 <div class="container">
 
-  <div class="token-section">
+  <div class="token-section" id="token-section">
     🔑 <strong>GitHub Token required to save changes</strong> — enter your PAT with <code>repo</code> + <code>workflow</code> scopes:
-    <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" />
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+      <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" style="flex:1;" />
+      <button class="btn btn-primary" onclick="saveToken()" style="white-space:nowrap;">Remember Me</button>
+      <button class="btn" onclick="clearToken()" style="background:#fee2e2;color:#dc2626;white-space:nowrap;">Forget</button>
+    </div>
+    <div id="token-status" style="font-size:0.8rem;margin-top:6px;color:#888;"></div>
   </div>
 
   <div class="card">
@@ -238,6 +243,28 @@ async function saveConfig() {
   }
 }
 
+// Token memory
+function saveToken() {
+  const token = document.getElementById("gh-token").value.trim();
+  if (!token) return;
+  localStorage.setItem("rbt_gh_token", token);
+  document.getElementById("token-status").textContent = "✅ Token saved in this browser.";
+}
+
+function clearToken() {
+  localStorage.removeItem("rbt_gh_token");
+  document.getElementById("gh-token").value = "";
+  document.getElementById("token-status").textContent = "Token cleared.";
+}
+
+function loadToken() {
+  const saved = localStorage.getItem("rbt_gh_token");
+  if (saved) {
+    document.getElementById("gh-token").value = saved;
+    document.getElementById("token-status").textContent = "✅ Token loaded from browser storage.";
+  }
+}
+
 // Load config from GitHub on page load
 async function loadConfig() {
   try {
@@ -271,6 +298,7 @@ function updateIcsRow(i) {
   openBtn.href = url;
 }
 
+loadToken();
 loadConfig();
 </script>
 </body>
