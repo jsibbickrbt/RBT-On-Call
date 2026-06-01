@@ -10,6 +10,10 @@ on:
         description: 'Send test text to this employee (leave blank for normal run)'
         required: false
         default: ''
+      skip_notify:
+        description: 'Refresh calendars only — skip SMS notifications'
+        required: false
+        default: 'false'
 
 jobs:
   update-and-notify:
@@ -57,6 +61,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Send on-call notifications
+        if: ${{ github.event.inputs.skip_notify != 'true' }}
         env:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}

@@ -153,6 +153,7 @@
 
 <div class="save-bar">
   <span class="status" id="save-status"></span>
+  <button class="btn" id="refresh-btn" onclick="refreshCalendars()" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;">🔄 Refresh Calendars</button>
   <button class="btn btn-primary" onclick="saveConfig()">💾 Save Changes</button>
 </div>
 
@@ -237,6 +238,44 @@ function collectConfig() {
       active: document.getElementById("office-active").checked,
     }
   };
+}
+
+async function refreshCalendars() {
+  const token = document.getElementById("gh-token").value.trim();
+  if (!token) { alert("Please enter your GitHub token first."); return; }
+  const btn = document.getElementById("refresh-btn");
+  const status = document.getElementById("save-status");
+  btn.textContent = "⏳ Refreshing…";
+  btn.disabled = true;
+  status.textContent = "";
+  status.className = "status";
+  try {
+    const resp = await fetch(
+      `https://api.github.com/repos/${REPO}/actions/workflows/update_calendar.yml/dispatches`,
+      {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "Accept": "application/vnd.github+json" },
+        body: JSON.stringify({ ref: "main", inputs: { test_user: "", skip_notify: "true" } })
+      }
+    );
+    if (resp.status === 204) {
+      btn.textContent = "✅ Refresh Started";
+      status.textContent = "Calendar refresh triggered — takes ~1 min to deploy.";
+      status.className = "status ok";
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${resp.status}`);
+    }
+  } catch (e) {
+    btn.textContent = "🔄 Refresh Calendars";
+    btn.disabled = false;
+    status.textContent = "Error: " + e.message;
+    status.className = "status err";
+  }
+  setTimeout(() => {
+    btn.textContent = "🔄 Refresh Calendars";
+    btn.disabled = false;
+  }, 10000);
 }
 
 async function saveConfig() {
