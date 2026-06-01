@@ -4,11 +4,6 @@ on:
   schedule:
     - cron: '0 6 * * *'   # 6 AM UTC - refresh all calendars daily
   workflow_dispatch:
-    inputs:
-      skip_notify:
-        description: 'Refresh calendars only — skip SMS notifications'
-        required: false
-        default: 'true'
 
 jobs:
   update-calendars:

@@ -255,7 +255,7 @@ async function refreshCalendars() {
       {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "Accept": "application/vnd.github+json" },
-        body: JSON.stringify({ ref: "main", inputs: { test_user: "", skip_notify: "true" } })
+        body: JSON.stringify({ ref: "main", inputs: {} })
       }
     );
     if (resp.status === 204) {
