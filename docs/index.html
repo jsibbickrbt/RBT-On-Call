@@ -379,6 +379,9 @@
       <tbody id="emp-table"></tbody>
     </table>
     <button class="btn-add-emp" onclick="addEmployee()">+ Add Employee</button>
+    <div style="margin-top:12px;text-align:right;">
+      <button class="btn-sm orange" id="text-all-btn" onclick="sendTextAll()">💬 Test Text All</button>
+    </div>
   </div>
 
   <!-- Office -->
@@ -732,6 +735,32 @@ async function viewCalendar(name) {
     document.getElementById("modal-body").innerHTML=html;
   } catch(e) {
     document.getElementById("modal-body").innerHTML=`<p style="color:#dc2626">Failed to load: ${e.message}</p>`;
+  }
+}
+
+async function sendTextAll() {
+  const token = document.getElementById("gh-token").value.trim();
+  if (!token) { alert("Please enter your GitHub token first."); return; }
+  if (!confirm("Send a test text to ALL active employees?")) return;
+  const btn = document.getElementById("text-all-btn");
+  btn.textContent = "Sending…"; btn.disabled = true;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
+      method: "POST",
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ ref: "main", inputs: { test_user: "all" } })
+    });
+    if (res.ok || res.status === 204) {
+      btn.textContent = "✅ Sent!"; btn.classList.add("sent");
+      setTimeout(() => { btn.textContent = "💬 Test Text All"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
+    } else {
+      const err = await res.json();
+      alert("Error: " + (err.message || res.status));
+      btn.textContent = "💬 Test Text All"; btn.disabled = false;
+    }
+  } catch(e) {
+    alert("Error: " + e.message);
+    btn.textContent = "💬 Test Text All"; btn.disabled = false;
   }
 }
 

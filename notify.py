@@ -199,6 +199,22 @@ def main():
         else:
             print("No office phone configured")
         return
+    if test_user == "all":
+        for emp in CONFIG["employees"]:
+            if not emp.get("active", True):
+                continue
+            name  = emp["name"]
+            phone = emp.get("phone", "")
+            if phone:
+                try:
+                    send_sms(sid, token, from_num, phone, f"Test: {name}, you are on call today!")
+                    print(f"Test text sent to {name} ({phone})")
+                except Exception as e:
+                    print(f"Failed to text {name}: {e}")
+            else:
+                print(f"No phone for {name}")
+        return
+
     if test_user:
         for emp in CONFIG["employees"]:
             if emp["name"].lower() == test_user and emp.get("active", True):
