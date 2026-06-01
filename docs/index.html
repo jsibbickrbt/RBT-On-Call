@@ -43,6 +43,12 @@
   .status.err { color: #dc2626; }
   .ics-link { font-size: 0.8rem; color: #4f46e5; text-decoration: none; }
   .ics-link:hover { text-decoration: underline; }
+  .ics-url-row td { background: #f8f7ff; padding: 6px 12px 10px 12px; }
+  .ics-url-box { display: flex; align-items: center; gap: 6px; }
+  .ics-url-box input { background: white; border: 1px solid #c7d2fe; border-radius: 6px; padding: 5px 8px; font-size: 0.78rem; color: #4338ca; font-family: monospace; flex: 1; cursor: pointer; }
+  .btn-copy { padding: 4px 10px; font-size: 0.78rem; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .btn-copy:hover { background: #e0e7ff; }
+  .btn-copy.copied { background: #d1fae5; color: #059669; border-color: #a7f3d0; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
   .badge-on { background: #d1fae5; color: #059669; }
   .badge-off { background: #f3f4f6; color: #9ca3af; }
@@ -71,7 +77,6 @@
           <th>Phone</th>
           <th>Carrier</th>
           <th>Active</th>
-          <th>ICS Feed</th>
           <th></th>
         </tr>
       </thead>
@@ -128,7 +133,7 @@ function renderEmployees() {
     const icsUrl = `${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics`;
     tbody.innerHTML += `
       <tr id="emp-row-${i}">
-        <td><input type="text" id="emp-name-${i}" value="${emp.name}" /></td>
+        <td><input type="text" id="emp-name-${i}" value="${emp.name}" onchange="updateIcsRow(${i})" /></td>
         <td><input type="text" id="emp-phone-${i}" value="${emp.phone || ""}" placeholder="10 digits" /></td>
         <td>${carrierSelect(emp.carrier || "bell", `emp-carrier-${i}`)}</td>
         <td>
@@ -137,10 +142,17 @@ function renderEmployees() {
             <span class="slider"></span>
           </label>
         </td>
-        <td><a class="ics-link" href="${icsUrl}" target="_blank">📅 Subscribe</a></td>
         <td>
-          <div class="actions">
-            <button class="btn btn-danger" onclick="removeEmployee(${i})">✕</button>
+          <button class="btn btn-danger" onclick="removeEmployee(${i})">✕</button>
+        </td>
+      </tr>
+      <tr class="ics-url-row" id="ics-row-${i}">
+        <td colspan="5">
+          <div class="ics-url-box">
+            <span style="font-size:0.8rem;color:#888;white-space:nowrap;">📅 ICS:</span>
+            <input type="text" id="ics-url-${i}" value="${icsUrl}" readonly onclick="this.select()" />
+            <button class="btn-copy" onclick="copyIcs(${i})">Copy</button>
+            <a class="btn-copy" href="${icsUrl}" target="_blank" style="text-decoration:none;">Open</a>
           </div>
         </td>
       </tr>`;
@@ -239,6 +251,24 @@ async function loadConfig() {
   } catch (e) {
     document.getElementById("save-status").textContent = "Failed to load config: " + e.message;
   }
+}
+
+function copyIcs(i) {
+  const input = document.getElementById(`ics-url-${i}`);
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = input.nextElementSibling;
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 2000);
+  });
+}
+
+function updateIcsRow(i) {
+  const name = document.getElementById(`emp-name-${i}`).value.trim().toLowerCase();
+  const url = `${BASE_URL}/${name}_schedule.ics`;
+  document.getElementById(`ics-url-${i}`).value = url;
+  const openBtn = document.getElementById(`ics-url-${i}`).nextElementSibling.nextElementSibling;
+  openBtn.href = url;
 }
 
 loadConfig();
