@@ -2,21 +2,16 @@ name: Update RBT On-Call Calendars
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 6 AM UTC - refresh all calendars
-    - cron: '0 11 * * *'  # 11 AM UTC - 7 AM Eastern - send notifications
+    - cron: '0 6 * * *'   # 6 AM UTC - refresh all calendars daily
   workflow_dispatch:
     inputs:
-      test_user:
-        description: 'Send test text to this employee (leave blank for normal run)'
-        required: false
-        default: ''
       skip_notify:
         description: 'Refresh calendars only — skip SMS notifications'
         required: false
-        default: 'false'
+        default: 'true'
 
 jobs:
-  update-and-notify:
+  update-calendars:
     runs-on: ubuntu-latest
 
     permissions:
@@ -59,12 +54,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Send on-call notifications
-        if: ${{ github.event.inputs.skip_notify != 'true' }}
-        env:
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
-          TEST_USER: ${{ github.event.inputs.test_user }}
-        run: python notify.py

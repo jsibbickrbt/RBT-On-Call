@@ -366,7 +366,7 @@ async function sendOfficeTest() {
   btn.disabled = true;
 
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/update_calendar.yml/dispatches`, {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
       method: "POST",
       headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
       body: JSON.stringify({ ref: "main", inputs: { test_user: "office" } })
@@ -401,7 +401,7 @@ async function sendTestText(i, name) {
   btn.disabled = true;
 
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/update_calendar.yml/dispatches`, {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
       method: "POST",
       headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
       body: JSON.stringify({ ref: "main", inputs: { test_user: name } })

@@ -1,0 +1,32 @@
+name: Send On-Call Notifications
+
+on:
+  schedule:
+    - cron: '0 11 * * *'  # 11 AM UTC = 7 AM Eastern — send daily SMS notifications
+  workflow_dispatch:
+    inputs:
+      test_user:
+        description: 'Send test text to this employee (or "office"). Leave blank for normal run.'
+        required: false
+        default: ''
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Send on-call notifications
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
+          TEST_USER: ${{ github.event.inputs.test_user }}
+        run: python notify.py
