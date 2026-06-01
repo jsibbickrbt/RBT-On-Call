@@ -15,6 +15,11 @@
       "name": "Dave",
       "phone": "+12268024291",
       "active": true
+    },
+    {
+      "name": "Will",
+      "phone": "5197172216",
+      "active": true
     }
   ],
   "office": {
