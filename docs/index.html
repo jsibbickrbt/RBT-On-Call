@@ -304,6 +304,7 @@
   .cal-event.today    { background:#fefce8; border-left:3px solid #d97706; }
   .cal-event.conflict { background:#fff7ed; border-left:3px solid #f97316; }
   .cal-conflict-label { font-size:0.72rem; color:#ea580c; font-weight:600; margin-left:6px; }
+  .cal-holiday-label  { font-size:0.72rem; color:#b45309; font-weight:600; margin-left:6px; background:#fef3c7; border:1px solid #fde68a; padding:1px 6px; border-radius:99px; }
   .cal-date { font-weight:600; font-size:0.875rem; min-width:130px; color:#1a2e14; }
   .cal-label { font-size:0.82rem; color:#6b7280; }
   .conflict-badge {
@@ -723,6 +724,57 @@ function formatDate(d8) {
 
 function today8() { return new Date().toISOString().slice(0,10).replace(/-/g,""); }
 
+// Canadian (Ontario) statutory holidays
+function getCanadianHolidays(year) {
+  const holidays = {};
+  const d8 = (y,m,d) => `${y}${String(m).padStart(2,"0")}${String(d).padStart(2,"0")}`;
+  const nthMonday = (y,m,n) => { const d=new Date(y,m-1,1); d.setDate(1+(((8-d.getDay())%7)||7)+(n-1)*7); return d.getDate(); };
+  const lastMonday = (y,m) => { const d=new Date(y,m,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.getDate(); };
+
+  // Easter (Anonymous Gregorian algorithm)
+  const easter = (y) => {
+    const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m2=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m2+114)/31),day=((h+l-7*m2+114)%31)+1;
+    return {month,day};
+  };
+  const {month:em,day:ed}=easter(year);
+  const easterDate=new Date(year,em-1,ed);
+  const goodFriday=new Date(easterDate); goodFriday.setDate(easterDate.getDate()-2);
+  const easterMonday=new Date(easterDate); easterMonday.setDate(easterDate.getDate()+1);
+
+  // Fixed holidays
+  holidays[d8(year,1,1)]  = "New Year's Day 🍁";
+  holidays[d8(year,7,1)]  = "Canada Day 🍁";
+  holidays[d8(year,11,11)]= "Remembrance Day 🍁";
+  holidays[d8(year,12,25)]= "Christmas Day 🍁";
+  holidays[d8(year,12,26)]= "Boxing Day 🍁";
+
+  // Ontario fixed
+  holidays[d8(year,2,nthMonday(year,2,3))] = "Family Day 🍁";
+  holidays[d8(year,goodFriday.getMonth()+1,goodFriday.getDate())] = "Good Friday 🍁";
+  holidays[d8(year,easterMonday.getMonth()+1,easterMonday.getDate())] = "Easter Monday 🍁";
+
+  // Victoria Day: last Monday before May 25
+  const vd = new Date(year,4,25); vd.setDate(25-((vd.getDay()+6)%7||7));
+  holidays[d8(year,5,vd.getDate())] = "Victoria Day 🍁";
+
+  // Civic Holiday: 1st Monday of August (Ontario)
+  holidays[d8(year,8,nthMonday(year,8,1))] = "Civic Holiday 🍁";
+
+  // Labour Day: 1st Monday of September
+  holidays[d8(year,9,nthMonday(year,9,1))] = "Labour Day 🍁";
+
+  // Thanksgiving: 2nd Monday of October
+  holidays[d8(year,10,nthMonday(year,10,2))] = "Thanksgiving 🍁";
+
+  return holidays;
+}
+
+function buildHolidayMap(years) {
+  let map = {};
+  years.forEach(y => Object.assign(map, getCanadianHolidays(y)));
+  return map;
+}
+
 async function viewCalendar(name) {
   document.getElementById("modal-title").textContent=`${name}'s Schedule`;
   document.getElementById("modal-body").innerHTML=`<div class="modal-loading">⏳ Loading…</div>`;
@@ -736,6 +788,9 @@ async function viewCalendar(name) {
     const upcoming=(list)=>list.filter(e=>e.dtstart>=todayD).sort((a,b)=>a.dtstart.localeCompare(b.dtstart));
     const upOncall=upcoming(oncall), upVacation=upcoming(vacation);
     const conflictSet=new Set(findIcsConflicts(events));
+    const years=[...new Set(upOncall.map(e=>+e.dtstart.slice(0,4)))];
+    if (!years.includes(new Date().getFullYear())) years.push(new Date().getFullYear());
+    const holidays=buildHolidayMap(years);
     let html="";
     if (!upOncall.length&&!upVacation.length) html=`<p style="color:#9ca3af;text-align:center;padding:32px">No upcoming events.</p>`;
     if (upOncall.length) {
@@ -743,8 +798,10 @@ async function viewCalendar(name) {
       upOncall.forEach(ev=>{
         const t=ev.dtstart===todayD;
         const c=conflictSet.has(ev.dtstart);
+        const h=holidays[ev.dtstart];
         const cls=t?"today":c?"conflict":"oncall";
-        const extra=c?`<span class="cal-conflict-label">⚠️ Vacation conflict</span>`:"";
+        const extra=(c?`<span class="cal-conflict-label">⚠️ Vacation conflict</span>`:"")+
+                    (h?`<span class="cal-holiday-label" title="${h}">${h}</span>`:"");
         html+=`<div class="cal-event ${cls}"><div class="cal-date">${formatDate(ev.dtstart)}${t?`<span class="cal-today-badge">TODAY</span>`:""}</div><div class="cal-label">${ev.summary}${extra}</div></div>`;
       });
     }
