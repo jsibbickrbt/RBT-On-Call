@@ -19,12 +19,12 @@
     {
       "name": "Will",
       "phone": "5197172216",
-      "active": false
+      "active": true
     },
     {
       "name": "Steve",
       "phone": "5197322587",
-      "active": false
+      "active": true
     },
     {
       "name": "Braeden",
@@ -39,12 +39,12 @@
     {
       "name": "Mitch",
       "phone": "5196080723",
-      "active": false
+      "active": true
     },
     {
       "name": "Liam",
       "phone": "5197175041",
-      "active": false
+      "active": true
     },
     {
       "name": "Dylan",
