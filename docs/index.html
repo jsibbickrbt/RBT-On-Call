@@ -755,6 +755,9 @@ function getCanadianHolidays(year) {
   const vd = new Date(year,4,25); vd.setDate(25-((vd.getDay()+6)%7||7));
   holidays[d8(year,5,vd.getDate())] = "Victoria Day 🍁";
 
+  // Civic Holiday: 1st Monday of August
+  holidays[d8(year,8,nthMonday(year,8,1))] = "Civic Holiday 🍁";
+
   // Labour Day: 1st Monday of September
   holidays[d8(year,9,nthMonday(year,9,1))] = "Labour Day 🍁";
 
