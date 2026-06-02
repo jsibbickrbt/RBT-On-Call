@@ -141,30 +141,34 @@
     border-bottom: 1px solid #f0f2f5;
   }
 
-  /* ── Token card ── */
-  .token-card {
-    background: #fafff8;
-    border: 1px solid #bbf7d0;
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+  /* ── Admin Login ── */
+  .admin-login-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: #1a2e14; color: white; border: none;
+    padding: 8px 16px; border-radius: 8px; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer; transition: background 0.15s;
   }
-  .token-label { font-size: 0.85rem; color: #166534; font-weight: 500; white-space: nowrap; }
-  .token-card input {
-    flex: 1;
-    min-width: 200px;
-    border: 1px solid #d1d5db;
-    border-radius: 7px;
-    padding: 7px 12px;
-    font-size: 0.875rem;
-    outline: none;
+  .admin-login-btn:hover { background: #2d6a27; }
+  .admin-login-btn.logged-in { background: #2d6a27; }
+  .admin-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 1000;
+    align-items: center; justify-content: center;
   }
-  .token-card input:focus { border-color: #2d6a27; }
-  .token-status { font-size: 0.8rem; color: #059669; width: 100%; margin-top: 2px; }
+  .admin-modal-overlay.open { display: flex; }
+  .admin-modal {
+    background: white; border-radius: 16px; padding: 32px;
+    width: 100%; max-width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  }
+  .admin-modal h2 { font-size: 1.2rem; font-weight: 700; color: #1a2e14; margin-bottom: 6px; }
+  .admin-modal p  { font-size: 0.85rem; color: #6b7280; margin-bottom: 20px; }
+  .admin-modal input {
+    width: 100%; padding: 10px 14px; border: 1.5px solid #d1d5db;
+    border-radius: 8px; font-size: 0.9rem; outline: none; margin-bottom: 12px;
+  }
+  .admin-modal input:focus { border-color: #2d6a27; }
+  .admin-modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+  .admin-error { font-size: 0.8rem; color: #dc2626; margin-bottom: 8px; display: none; }
 
   /* ── Table ── */
   table { width: 100%; border-collapse: collapse; }
@@ -359,13 +363,27 @@
 <!-- Page -->
 <div class="page">
 
-  <!-- Token -->
-  <div class="token-card">
-    <span class="token-label">🔑 GitHub Token</span>
-    <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" />
-    <button class="btn-sm green" onclick="saveToken()">Remember</button>
-    <button class="btn-sm gray"  onclick="clearToken()">Forget</button>
-    <div class="token-status" id="token-status"></div>
+  <!-- Admin Login -->
+  <input type="hidden" id="gh-token" />
+  <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+    <button class="admin-login-btn" id="admin-login-btn" onclick="openAdminModal()">🔒 Admin Login</button>
+  </div>
+
+  <!-- Admin Modal -->
+  <div class="admin-modal-overlay" id="admin-modal-overlay">
+    <div class="admin-modal">
+      <h2 id="admin-modal-title">Admin Login</h2>
+      <p id="admin-modal-desc">Enter your admin password to unlock management features.</p>
+      <input type="password" id="admin-password" placeholder="Password" onkeydown="if(event.key==='Enter')submitAdminLogin()" />
+      <div id="admin-token-row" style="display:none;">
+        <input type="password" id="admin-token-input" placeholder="GitHub Token (ghp_...)" />
+      </div>
+      <div class="admin-error" id="admin-error"></div>
+      <div class="admin-modal-btns">
+        <button class="btn-sm gray" onclick="closeAdminModal()">Cancel</button>
+        <button class="btn-sm green" onclick="submitAdminLogin()">Login</button>
+      </div>
+    </div>
   </div>
 
   <!-- Header -->
@@ -592,26 +610,91 @@ async function saveConfig() {
   }
 }
 
-function saveToken() {
-  const token = document.getElementById("gh-token").value.trim();
-  if (!token) return;
-  localStorage.setItem("rbt_gh_token", token);
-  document.getElementById("token-status").textContent = "✅ Token saved in this browser.";
+// Admin Login — token encrypted with password using AES-GCM, stored in localStorage
+async function deriveKey(password) {
+  const enc = new TextEncoder();
+  const keyMat = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name:"PBKDF2", salt: enc.encode("rbt-oncall-salt"), iterations:100000, hash:"SHA-256" },
+    keyMat, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]
+  );
 }
 
-function clearToken() {
-  localStorage.removeItem("rbt_gh_token");
-  document.getElementById("gh-token").value = "";
-  document.getElementById("token-status").textContent = "Token cleared.";
+async function encryptToken(password, token) {
+  const key = await deriveKey(password);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const ct = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, key, enc.encode(token));
+  const buf = new Uint8Array(iv.byteLength + ct.byteLength);
+  buf.set(iv, 0); buf.set(new Uint8Array(ct), iv.byteLength);
+  return btoa(String.fromCharCode(...buf));
 }
 
-function loadToken() {
-  const saved = localStorage.getItem("rbt_gh_token");
-  if (saved) {
-    document.getElementById("gh-token").value = saved;
-    document.getElementById("token-status").textContent = "✅ Token loaded.";
+async function decryptToken(password, data) {
+  const key = await deriveKey(password);
+  const raw = Uint8Array.from(atob(data), c => c.charCodeAt(0));
+  const iv = raw.slice(0,12), ct = raw.slice(12);
+  const dec = await crypto.subtle.decrypt({ name:"AES-GCM", iv }, key, ct);
+  return new TextDecoder().decode(dec);
+}
+
+function openAdminModal() {
+  if (document.getElementById("gh-token").value) { logoutAdmin(); return; }
+  const hasStored = !!localStorage.getItem("rbt_enc_token");
+  document.getElementById("admin-password").value = "";
+  document.getElementById("admin-error").style.display = "none";
+  document.getElementById("admin-modal-title").textContent = "Admin Login";
+  document.getElementById("admin-modal-desc").textContent = hasStored
+    ? "Enter your admin password to unlock management features."
+    : "First time setup: enter a password and your GitHub token to get started.";
+  const tokenRow = document.getElementById("admin-token-row");
+  if (tokenRow) tokenRow.style.display = hasStored ? "none" : "block";
+  document.getElementById("admin-modal-overlay").classList.add("open");
+  setTimeout(() => document.getElementById("admin-password").focus(), 100);
+}
+
+function closeAdminModal() {
+  document.getElementById("admin-modal-overlay").classList.remove("open");
+}
+
+async function submitAdminLogin() {
+  const pw = document.getElementById("admin-password").value;
+  if (!pw) { document.getElementById("admin-error").textContent = "Please enter a password."; document.getElementById("admin-error").style.display = "block"; return; }
+  const stored = localStorage.getItem("rbt_enc_token");
+  if (stored) {
+    try {
+      const token = await decryptToken(pw, stored);
+      document.getElementById("gh-token").value = token;
+      document.getElementById("admin-login-btn").textContent = "✅ Admin";
+      document.getElementById("admin-login-btn").classList.add("logged-in");
+      closeAdminModal();
+    } catch {
+      document.getElementById("admin-error").textContent = "Incorrect password.";
+      document.getElementById("admin-error").style.display = "block";
+    }
+  } else {
+    const tokenInput = document.getElementById("admin-token-input");
+    const ghToken = tokenInput ? tokenInput.value.trim() : "";
+    if (!ghToken) { document.getElementById("admin-error").textContent = "Please enter your GitHub token."; document.getElementById("admin-error").style.display = "block"; return; }
+    const enc = await encryptToken(pw, ghToken);
+    localStorage.setItem("rbt_enc_token", enc);
+    document.getElementById("gh-token").value = ghToken;
+    document.getElementById("admin-login-btn").textContent = "✅ Admin";
+    document.getElementById("admin-login-btn").classList.add("logged-in");
+    closeAdminModal();
   }
 }
+
+function logoutAdmin() {
+  if (!confirm("Log out of admin?")) return;
+  document.getElementById("gh-token").value = "";
+  document.getElementById("admin-login-btn").textContent = "🔒 Admin Login";
+  document.getElementById("admin-login-btn").classList.remove("logged-in");
+}
+
+function saveToken() {}
+function clearToken() {}
+function loadToken() {}
 
 async function loadConfig() {
   try {
@@ -964,7 +1047,6 @@ async function loadConfigAndCheck() {
   checkAllConflicts();
 }
 
-loadToken();
 loadConfigAndCheck();
 </script>
 </body>
