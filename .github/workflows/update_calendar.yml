@@ -38,6 +38,9 @@ jobs:
           MS_REFRESH_TOKEN: ${{ secrets.MS_REFRESH_TOKEN }}
         run: python generate.py
 
+      - name: Write version file
+        run: echo "{\"version\":\"$(date -u '+%Y%m%d%H%M%S')\",\"updated\":\"$(date -u '+%Y-%m-%d %H:%M UTC')\"}" > docs/version.json
+
       - name: Ensure .nojekyll exists
         run: touch docs/.nojekyll
 
