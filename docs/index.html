@@ -311,31 +311,6 @@
   .cal-holiday-label  { font-size:0.72rem; color:#b45309; font-weight:600; margin-left:6px; background:#fef3c7; border:1px solid #fde68a; padding:1px 6px; border-radius:99px; }
   .holiday-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; background:#fef3c7; color:#92400e; border:1px solid #fde68a; padding:2px 8px; border-radius:99px; font-weight:600; cursor:pointer; white-space:nowrap; transition:background 0.15s; }
   .holiday-badge:hover { background:#fde68a; }
-
-  /* ── Update banner ── */
-  .update-banner { display:none; background:#1a2e14; color:white; padding:10px 20px; border-radius:10px; margin-bottom:16px; font-size:0.85rem; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .update-banner button { background:white; color:#1a2e14; border:none; padding:4px 12px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer; }
-
-  /* ── Month calendar ── */
-  .mcal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-  .mcal-title { font-size:1rem; font-weight:700; color:#1a2e14; }
-  .mcal-nav-btn { background:none; border:1px solid #d1d5db; border-radius:7px; padding:4px 12px; cursor:pointer; font-size:1rem; color:#374151; }
-  .mcal-nav-btn:hover { background:#f3f4f6; }
-  .mcal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
-  .mcal-dow { text-align:center; font-size:0.72rem; font-weight:700; color:#6b7280; padding:4px 0; text-transform:uppercase; }
-  .mcal-day { min-height:80px; background:white; border:1px solid #e5e7eb; border-radius:6px; padding:4px; font-size:0.75rem; }
-  .mcal-day.other-month { background:#f9fafb; }
-  .mcal-day.today { border-color:#2d6a27; border-width:2px; }
-  .mcal-day-num { font-weight:700; color:#374151; margin-bottom:3px; font-size:0.78rem; }
-  .mcal-day.today .mcal-day-num { color:#2d6a27; }
-  .mcal-pill { font-size:0.68rem; font-weight:600; padding:1px 5px; border-radius:99px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; display:block; }
-  .mcal-pill.oncall  { background:#dcfce7; color:#166534; }
-  .mcal-pill.vacation{ background:#dbeafe; color:#1d4ed8; }
-  .mcal-pill.holiday { background:#fef3c7; color:#92400e; }
-  .mcal-legend { display:flex; gap:16px; margin-top:12px; font-size:0.78rem; }
-  .mcal-legend-item { display:flex; align-items:center; gap:5px; }
-  .mcal-loading { text-align:center; padding:40px; color:#9ca3af; font-size:0.875rem; }
-
   .rot-row-new      { background:#f0fdf4; }
   .rot-row-occupied { background:#fefce8; }
   .rot-row-skip     { background:#f9fafb; color:#9ca3af; }
@@ -414,15 +389,6 @@
     </div>
   </div>
 
-  <!-- Update banner -->
-  <div class="update-banner" id="update-banner" style="display:none;">
-    <span id="update-banner-text">&#x1F195; New update available</span>
-    <div style="display:flex;gap:8px;">
-      <button onclick="location.reload()">Refresh Now</button>
-      <button onclick="dismissUpdate()" style="background:rgba(255,255,255,0.2);color:white;">Dismiss</button>
-    </div>
-  </div>
-
   <!-- Header -->
   <div class="page-header">
     <h1 class="page-title">On-Call Manager</h1>
@@ -450,24 +416,6 @@
     <button class="btn-add-emp" onclick="addEmployee()">+ Add Employee</button>
     <div style="margin-top:12px;text-align:right;">
       <button class="btn-sm orange" id="text-all-btn" onclick="sendTextAll()">💬 Test Text All</button>
-    </div>
-  </div>
-
-  <!-- Month Calendar -->
-  <div class="card">
-    <div class="card-title">&#x1F4C5; Team Calendar</div>
-    <div class="mcal-nav">
-      <button class="mcal-nav-btn" onclick="changeMonth(-1)">&#x276E;</button>
-      <span class="mcal-title" id="mcal-title">Loading...</span>
-      <button class="mcal-nav-btn" onclick="changeMonth(1)">&#x276F;</button>
-    </div>
-    <div class="mcal-grid" id="mcal-grid">
-      <div class="mcal-loading">&#x23F3; Loading calendar...</div>
-    </div>
-    <div class="mcal-legend">
-      <div class="mcal-legend-item"><span class="mcal-pill oncall" style="display:inline-block;">On Call</span></div>
-      <div class="mcal-legend-item"><span class="mcal-pill vacation" style="display:inline-block;">Vacation</span></div>
-      <div class="mcal-legend-item"><span class="mcal-pill holiday" style="display:inline-block;">&#x1F341; Stat Holiday</span></div>
     </div>
   </div>
 
@@ -1182,7 +1130,6 @@ async function loadConfigAndCheck() {
   await loadConfig();
   checkAllConflicts();
   initRotationPlanner();
-  initCalendar();
 }
 
 // ── Rotation Planner ─────────────────────────────────────────────────────────
@@ -1662,134 +1609,8 @@ async function clearOncallEvents() {
   if (ghToken && deleted > 0) refreshCalendars();
 }
 
-// ── Version check ────────────────────────────────────────────────────────────
-async function checkVersion() {
-  try {
-    const r = await fetch(`${BASE_URL}/version.json?cb=${Date.now()}`, { cache:"no-store" });
-    if (!r.ok) return;
-    const { version, updated } = await r.json();
-    const seen = localStorage.getItem("rbt_seen_version");
-    if (seen && seen !== version) {
-      document.getElementById("update-banner-text").textContent = `\u{1F195} New update available (${updated})`;
-      document.getElementById("update-banner").style.display = "flex";
-    }
-    localStorage.setItem("rbt_seen_version", version);
-  } catch {}
-}
-function dismissUpdate() {
-  document.getElementById("update-banner").style.display = "none";
-}
-
-// ── Month Calendar ────────────────────────────────────────────────────────────
-let mcalYear  = new Date().getFullYear();
-let mcalMonth = new Date().getMonth(); // 0-based
-let mcalEvents = {}; // { "YYYYMMDD": [{name, type}] }
-let mcalLoaded = false;
-
-async function loadAllIcsForCalendar() {
-  mcalEvents = {};
-  const emps = (config.employees || []).filter(e => e.active !== false);
-  await Promise.all(emps.map(async emp => {
-    try {
-      const text = await (await fetch(`${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics?cb=${Date.now()}`)).text();
-      const events = parseIcsEvents(text);
-      events.forEach(ev => {
-        const s = ev.summary.toLowerCase();
-        const isOncall   = (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
-        const isVacation = s.includes("vacation");
-        if (!isOncall && !isVacation) return;
-        const type = isOncall ? "oncall" : "vacation";
-        // For vacations, fill each day in the range
-        if (isVacation && ev.dtend && ev.dtend !== ev.dtstart) {
-          let d = ev.dtstart;
-          while (d < ev.dtend) {
-            if (!mcalEvents[d]) mcalEvents[d] = [];
-            mcalEvents[d].push({ name: emp.name, type });
-            // Increment day
-            const dt = new Date(d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8)+"T00:00:00");
-            dt.setDate(dt.getDate()+1);
-            d = dt.toISOString().slice(0,10).replace(/-/g,"");
-          }
-        } else {
-          if (!mcalEvents[ev.dtstart]) mcalEvents[ev.dtstart] = [];
-          mcalEvents[ev.dtstart].push({ name: emp.name, type });
-        }
-      });
-    } catch {}
-  }));
-  mcalLoaded = true;
-}
-
-function renderMonthCalendar() {
-  const grid = document.getElementById("mcal-grid");
-  const title = document.getElementById("mcal-title");
-  const todayStr = today8();
-  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-  title.textContent = `${monthNames[mcalMonth]} ${mcalYear}`;
-
-  const holidays = getCanadianHolidays(mcalYear);
-
-  // Day-of-week headers
-  const dows = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  let html = dows.map(d => `<div class="mcal-dow">${d}</div>`).join("");
-
-  // First day of month
-  const firstDay = new Date(mcalYear, mcalMonth, 1).getDay();
-  const daysInMonth = new Date(mcalYear, mcalMonth+1, 0).getDate();
-  const daysInPrev  = new Date(mcalYear, mcalMonth, 0).getDate();
-
-  // Prev month padding
-  for (let i = firstDay-1; i >= 0; i--) {
-    html += `<div class="mcal-day other-month"><div class="mcal-day-num" style="color:#d1d5db;">${daysInPrev-i}</div></div>`;
-  }
-
-  // Current month days
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${mcalYear}${String(mcalMonth+1).padStart(2,"0")}${String(d).padStart(2,"0")}`;
-    const isToday = dateStr === todayStr;
-    const dayEvents = mcalEvents[dateStr] || [];
-    const holiday   = holidays[dateStr];
-
-    const oncall  = dayEvents.filter(e => e.type === "oncall");
-    const vacation = dayEvents.filter(e => e.type === "vacation");
-
-    let pills = "";
-    if (holiday) pills += `<span class="mcal-pill holiday">&#x1F341; ${holiday}</span>`;
-    oncall.forEach(e  => pills += `<span class="mcal-pill oncall">${e.name}</span>`);
-    vacation.forEach(e => pills += `<span class="mcal-pill vacation">${e.name}</span>`);
-
-    html += `<div class="mcal-day${isToday?" today":""}">
-      <div class="mcal-day-num">${d}</div>
-      ${pills}
-    </div>`;
-  }
-
-  // Next month padding
-  const totalCells = firstDay + daysInMonth;
-  const remaining  = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-  for (let i = 1; i <= remaining; i++) {
-    html += `<div class="mcal-day other-month"><div class="mcal-day-num" style="color:#d1d5db;">${i}</div></div>`;
-  }
-
-  grid.innerHTML = html;
-}
-
-async function changeMonth(dir) {
-  mcalMonth += dir;
-  if (mcalMonth > 11) { mcalMonth = 0; mcalYear++; }
-  if (mcalMonth < 0)  { mcalMonth = 11; mcalYear--; }
-  if (!mcalLoaded) await loadAllIcsForCalendar();
-  renderMonthCalendar();
-}
-
-async function initCalendar() {
-  await loadAllIcsForCalendar();
-  renderMonthCalendar();
-}
-
 handleOAuthCallback();
 loadConfigAndCheck();
-checkVersion();
 </script>
 </body>
 </html>
