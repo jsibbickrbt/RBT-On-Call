@@ -1396,8 +1396,9 @@ async function pushRotation() {
   }
 
   btn.textContent = "&#x2B06; Push to Outlook"; btn.disabled = false;
-  document.getElementById("rot-status").textContent =
-    `Done! ${pushed} events created${failed ? `, ${failed} failed` : ""}. Refresh calendars to update the site.`;
+  const pushMsg = `Done! ${pushed} of ${schedule.length} events pushed to Outlook${failed ? `, ${failed} failed` : ""}.`;
+  document.getElementById("rot-status").textContent = pushMsg;
+  alert(pushMsg);
 
   if (pushed > 0) {
     // Trigger calendar refresh
