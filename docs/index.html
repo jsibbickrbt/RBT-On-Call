@@ -1439,8 +1439,11 @@ async function clearOncallEvents() {
     return (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
   });
 
+  console.log(`Found ${allEvents.length} total events, ${toDelete.length} on-call to delete`);
+  console.log("Sample subjects:", allEvents.slice(0,5).map(e => e.subject));
+
   if (!toDelete.length) {
-    statusEl.textContent = "No on-call events found in that range.";
+    statusEl.textContent = `No on-call events found (${allEvents.length} total events in range, none matched).`;
     btn.disabled = false;
     return;
   }
@@ -1462,6 +1465,7 @@ async function clearOncallEvents() {
       });
       if (dr.ok || dr.status === 204) {
         deleted++;
+        console.log(`Deleted: ${ev.subject}`);
       } else {
         const errText = await dr.text();
         console.error(`Failed to delete "${ev.subject}" (${ev.id}): ${dr.status} ${errText}`);
