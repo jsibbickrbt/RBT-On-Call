@@ -374,6 +374,24 @@ def build_ics(all_events, name):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def get_all_names():
+    """Return a deduplicated list of first names from config employees + full directory."""
+    names = set()
+    # On-call rotation employees
+    for emp in CONFIG.get("employees", []):
+        names.add(emp["name"])
+    # Full directory (all staff)
+    dir_path = os.path.join(OUTPUT_DIR, "directory.json")
+    if os.path.exists(dir_path):
+        with open(dir_path) as f:
+            directory = json.load(f)
+        for emp in directory.get("field_employees", []) + directory.get("office_employees", []):
+            # Extract first name only (matches how calendar events are named)
+            first = emp["name"].split()[0].capitalize()
+            names.add(first)
+    return sorted(names)
+
+
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -393,11 +411,10 @@ def main():
     events = parse_events(raw)
     print(f"  {len(events)} total events parsed")
 
-    for emp in CONFIG["employees"]:
-        if not emp.get("active", True):
-            continue
+    all_names = get_all_names()
+    print(f"  Generating ICS for {len(all_names)} employees: {', '.join(all_names)}")
 
-        name = emp["name"]
+    for name in all_names:
         ics  = build_ics(events, name)
 
         filename = f"{OUTPUT_DIR}/{name.lower()}_schedule.ics"

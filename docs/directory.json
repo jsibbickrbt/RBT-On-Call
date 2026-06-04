@@ -1,0 +1,37 @@
+{
+  "last_updated": "April 8, 2026",
+  "field_employees": [
+    { "phone": "519-732-5626", "name": "ASHTON HALL",         "department": "GENERAL LABORER" },
+    { "phone": "519-761-0387", "name": "AUSTIN HALL",         "department": "APPRENTICE" },
+    { "phone": "519-717-2261", "name": "BRAEDEN SIBBICK",     "department": "ELECTRICIAN" },
+    { "phone": "226-979-0975", "name": "CARTER REID",         "department": "APPRENTICE" },
+    { "phone": "519-717-5047", "name": "CONNOR MUSCAT-HALL",  "department": "APPRENTICE" },
+    { "phone": "226-802-4291", "name": "DAVE SMITH",          "department": "ELECTRICIAN" },
+    { "phone": "519-865-3532", "name": "DYLAN KOOPS",         "department": "ELECTRICIAN" },
+    { "phone": "519-717-3715", "name": "EMERSON NOSEWORTHY",  "department": "APPRENTICE" },
+    { "phone": "519-717-4542", "name": "GABE SMUCK",          "department": "APPRENTICE" },
+    { "phone": "226-698-6461", "name": "HUGO DUMAS",          "department": "APPRENTICE" },
+    { "phone": "519-716-1997", "name": "HUNTER ANTHILL",      "department": "APPRENTICE" },
+    { "phone": "519-829-5542", "name": "JAMIE NAYLOR",        "department": "ELECTRICIAN" },
+    { "phone": "519-717-0878", "name": "JOEL LAWRENCE",       "department": "ELECTRICIAN" },
+    { "phone": "519-717-4987", "name": "JOSEPH ROSWELL",      "department": "ELECTRICIAN" },
+    { "phone": "519-757-5638", "name": "KYLE SKILLITER",      "department": "ELECTRICIAN" },
+    { "phone": "519-717-5041", "name": "LIAM DEMEER",         "department": "APPRENTICE" },
+    { "phone": "226-920-9545", "name": "MATT ROBINSON",       "department": "APPRENTICE" },
+    { "phone": "519-757-5552", "name": "MIKE BEATON",         "department": "ELECTRICIAN" },
+    { "phone": "548-885-3434", "name": "MITCHELL PROSSER",    "department": "APPRENTICE" },
+    { "phone": "519-608-0723", "name": "MITCH VAN OORSCHOT",  "department": "APPRENTICE" },
+    { "phone": "226-802-1180", "name": "SARAH BUCCI",         "department": "APPRENTICE" },
+    { "phone": "519-717-2216", "name": "WILLIAM ELLIOT",      "department": "ELECTRICIAN" },
+    { "phone": "519-761-8784", "name": "WYATT WARREN",        "department": "APPRENTICE" },
+    { "phone": "519-761-8618", "name": "ZENON LAFLEUR",       "department": "APPRENTICE" }
+  ],
+  "office_employees": [
+    { "phone": "519-757-2040", "name": "DAVITA POWELL",   "ext": "103", "department": "OFFICE" },
+    { "phone": "226-234-5990", "name": "DANILO SILVA",    "ext": "N/A", "department": "AUTOMATION" },
+    { "phone": "226-387-2175", "name": "JORDAN SIBBICK",  "ext": "104", "department": "OFFICE" },
+    { "phone": "519-770-5448", "name": "RANDALL KOOPS",   "ext": "102", "department": "OFFICE" },
+    { "phone": "519-770-5252", "name": "ROB TIMMERMAN",   "ext": "101", "department": "OFFICE" },
+    { "phone": "519-732-2587", "name": "STEVE KNILL",     "ext": "105", "department": "OFFICE" }
+  ]
+}

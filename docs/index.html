@@ -1710,35 +1710,73 @@ let mcalLoaded = false;
 
 async function loadAllIcsForCalendar() {
   mcalEvents = {};
-  const emps = (config.employees || []).filter(e => e.active !== false);
-  await Promise.all(emps.map(async emp => {
-    try {
-      const text = await (await fetch(`${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics?cb=${Date.now()}`)).text();
-      const events = parseIcsEvents(text);
-      events.forEach(ev => {
-        const s = ev.summary.toLowerCase();
-        const isOncall   = (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
-        const isVacation = s.includes("vacation");
-        if (!isOncall && !isVacation) return;
-        const type = isOncall ? "oncall" : "vacation";
-        // For vacations, fill each day in the range
-        if (isVacation && ev.dtend && ev.dtend !== ev.dtstart) {
-          let d = ev.dtstart;
-          while (d < ev.dtend) {
-            if (!mcalEvents[d]) mcalEvents[d] = [];
-            mcalEvents[d].push({ name: emp.name, type });
-            // Increment day
-            const dt = new Date(d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8)+"T00:00:00");
-            dt.setDate(dt.getDate()+1);
-            d = dt.toISOString().slice(0,10).replace(/-/g,"");
+  const token = await getGraphToken();
+
+  if (token) {
+    // Use Graph API — full directory, accurate data, no ICS dependency
+    const start = new Date(mcalYear, mcalMonth - 1, 1).toISOString().slice(0,10);
+    const end   = new Date(mcalYear, mcalMonth + 2, 1).toISOString().slice(0,10);
+    let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+            + `?startDateTime=${start}T00:00:00&endDateTime=${end}T00:00:00`
+            + `&$top=999&$select=subject,start,end`;
+    const allEvs = [];
+    while (url) {
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      (d.value || []).forEach(e => allEvs.push(e));
+      url = d["@odata.nextLink"] || null;
+    }
+    allEvs.forEach(ev => {
+      const subj = ev.subject || "";
+      const s    = subj.toLowerCase();
+      const isOncall   = (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
+      const isVacation = s.includes("vacation");
+      if (!isOncall && !isVacation) return;
+      const type = isOncall ? "oncall" : "vacation";
+      // Extract person name — first word that isn't a keyword
+      const skip = new Set(["on","call","oncall","vacation","-","–"]);
+      const name = subj.split(/[\s\-–]+/).find(w => w.length > 1 && !skip.has(w.toLowerCase())) || subj.split(" ")[0];
+      const dtstart = (ev.start.date || ev.start.dateTime.slice(0,10)).replace(/-/g,"");
+      const dtend   = (ev.end.date   || ev.end.dateTime.slice(0,10)).replace(/-/g,"");
+      let d = dtstart;
+      while (d < dtend) {
+        if (!mcalEvents[d]) mcalEvents[d] = [];
+        if (!mcalEvents[d].some(x => x.name === name && x.type === type))
+          mcalEvents[d].push({ name, type });
+        const dt = new Date(d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8)+"T12:00:00");
+        dt.setDate(dt.getDate()+1);
+        d = dt.toISOString().slice(0,10).replace(/-/g,"");
+      }
+    });
+  } else {
+    // Fallback: ICS files for on-call employees only
+    const emps = (config.employees || []).filter(e => e.active !== false);
+    await Promise.all(emps.map(async emp => {
+      try {
+        const text = await (await fetch(`${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics?cb=${Date.now()}`)).text();
+        parseIcsEvents(text).forEach(ev => {
+          const s = ev.summary.toLowerCase();
+          const isOncall   = (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
+          const isVacation = s.includes("vacation");
+          if (!isOncall && !isVacation) return;
+          const type = isOncall ? "oncall" : "vacation";
+          if (isVacation && ev.dtend && ev.dtend !== ev.dtstart) {
+            let d = ev.dtstart;
+            while (d < ev.dtend) {
+              if (!mcalEvents[d]) mcalEvents[d] = [];
+              mcalEvents[d].push({ name: emp.name, type });
+              const dt = new Date(d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8)+"T12:00:00");
+              dt.setDate(dt.getDate()+1);
+              d = dt.toISOString().slice(0,10).replace(/-/g,"");
+            }
+          } else {
+            if (!mcalEvents[ev.dtstart]) mcalEvents[ev.dtstart] = [];
+            mcalEvents[ev.dtstart].push({ name: emp.name, type });
           }
-        } else {
-          if (!mcalEvents[ev.dtstart]) mcalEvents[ev.dtstart] = [];
-          mcalEvents[ev.dtstart].push({ name: emp.name, type });
-        }
-      });
-    } catch {}
-  }));
+        });
+      } catch {}
+    }));
+  }
   mcalLoaded = true;
 }
 
@@ -1800,7 +1838,8 @@ async function changeMonth(dir) {
   mcalMonth += dir;
   if (mcalMonth > 11) { mcalMonth = 0; mcalYear++; }
   if (mcalMonth < 0)  { mcalMonth = 11; mcalYear--; }
-  if (!mcalLoaded) await loadAllIcsForCalendar();
+  mcalLoaded = false; // reload for new month window
+  await loadAllIcsForCalendar();
   renderMonthCalendar();
 }
 
