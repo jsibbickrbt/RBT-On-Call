@@ -1456,13 +1456,18 @@ async function clearOncallEvents() {
 
   for (const ev of toDelete) {
     try {
-      const dr = await fetch(`https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/events/${ev.id}`, {
+      const dr = await fetch(`https://graph.microsoft.com/v1.0/me/events/${ev.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (dr.ok || dr.status === 204) deleted++;
-      else failed++;
-    } catch { failed++; }
+      if (dr.ok || dr.status === 204) {
+        deleted++;
+      } else {
+        const errText = await dr.text();
+        console.error(`Failed to delete "${ev.subject}" (${ev.id}): ${dr.status} ${errText}`);
+        failed++;
+      }
+    } catch(e) { console.error("Delete exception:", e); failed++; }
     await new Promise(res => setTimeout(res, 80));
   }
 
