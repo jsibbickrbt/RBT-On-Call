@@ -1422,14 +1422,20 @@ async function clearOncallEvents() {
   statusEl.textContent = "Finding on-call events...";
   btn.disabled = true;
 
-  const url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
-            + `?startDateTime=${from}T00:00:00&endDateTime=${addDays(to,1)}T00:00:00`
-            + `&$top=999&$select=id,subject`;
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  const data = await r.json();
+  // Fetch ALL events with pagination
+  let fetchUrl = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+               + `?startDateTime=${from}T00:00:00&endDateTime=${addDays(to,1)}T00:00:00`
+               + `&$top=999&$select=id,subject`;
+  const allEvents = [];
+  while (fetchUrl) {
+    const r = await fetch(fetchUrl, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await r.json();
+    (data.value || []).forEach(ev => allEvents.push(ev));
+    fetchUrl = data["@odata.nextLink"] || null;
+  }
 
-  const toDelete = (data.value || []).filter(ev => {
-    const s = ev.subject.toLowerCase();
+  const toDelete = allEvents.filter(ev => {
+    const s = (ev.subject || "").toLowerCase();
     return (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
   });
 
