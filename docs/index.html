@@ -311,6 +311,9 @@
   .cal-holiday-label  { font-size:0.72rem; color:#b45309; font-weight:600; margin-left:6px; background:#fef3c7; border:1px solid #fde68a; padding:1px 6px; border-radius:99px; }
   .holiday-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; background:#fef3c7; color:#92400e; border:1px solid #fde68a; padding:2px 8px; border-radius:99px; font-weight:600; cursor:pointer; white-space:nowrap; transition:background 0.15s; }
   .holiday-badge:hover { background:#fde68a; }
+  .rot-row-new      { background:#f0fdf4; }
+  .rot-row-occupied { background:#fefce8; }
+  .rot-row-skip     { background:#f9fafb; color:#9ca3af; }
   .cal-date { font-weight:600; font-size:0.875rem; min-width:130px; color:#1a2e14; }
   .cal-label { font-size:0.82rem; color:#6b7280; }
   .conflict-badge {
@@ -414,6 +417,51 @@
     <div style="margin-top:12px;text-align:right;">
       <button class="btn-sm orange" id="text-all-btn" onclick="sendTextAll()">💬 Test Text All</button>
     </div>
+  </div>
+
+  <!-- Rotation Planner -->
+  <div class="card">
+    <div class="card-title">&#x1F501; Rotation Planner</div>
+    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">
+      Fills empty on-call days in Outlook for the next 7 months. Skips days already assigned. Clears nothing past Jan 31, 2028.
+    </p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
+      <div class="field">
+        <label class="field-label">Start Date</label>
+        <input type="date" id="rot-start" style="max-width:160px;" />
+      </div>
+      <div class="field">
+        <label class="field-label">Rotation (days/person)</label>
+        <select id="rot-days" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;">
+          <option value="1">1 day</option>
+          <option value="2">2 days</option>
+          <option value="7">7 days</option>
+          <option value="14">14 days</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Active employees</label>
+        <div id="rot-emp-count" style="padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:7px;font-size:0.875rem;color:#374151;min-width:60px;text-align:center;">—</div>
+      </div>
+      <button class="btn-sm blue" onclick="previewRotation()">&#x1F441; Preview</button>
+      <button class="btn-sm green" id="rot-push-btn" onclick="pushRotation()" style="display:none;">&#x2B06; Push to Outlook</button>
+    </div>
+    <div id="rot-preview" style="display:none;">
+      <div style="font-size:0.8rem;color:#6b7280;margin-bottom:8px;" id="rot-summary"></div>
+      <div style="max-height:320px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+          <thead>
+            <tr style="background:#f9fafb;position:sticky;top:0;">
+              <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e5e7eb;">Date</th>
+              <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e5e7eb;">Person</th>
+              <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e5e7eb;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="rot-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="rot-status" style="font-size:0.85rem;margin-top:10px;"></div>
   </div>
 
   <!-- Office -->
@@ -1045,6 +1093,213 @@ async function checkAllConflicts() {
 async function loadConfigAndCheck() {
   await loadConfig();
   checkAllConflicts();
+  initRotationPlanner();
+}
+
+// ── Rotation Planner ─────────────────────────────────────────────────────────
+
+const MS_CLIENT_ID  = "619ba349-9370-4f9d-a40a-832f3d43918b";
+const MS_TENANT_ID  = "c6742b62-ae1e-422e-8ade-06070424f6b6";
+const GRAPH_CAL_ID  = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAAHInXdAAA=";
+let graphAccessToken = null;
+
+function initRotationPlanner() {
+  const activeEmps = (config.employees || []).filter(e => e.active !== false);
+  document.getElementById("rot-emp-count").textContent = activeEmps.length;
+  // Default start = tomorrow
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  document.getElementById("rot-start").value = tomorrow.toISOString().slice(0,10);
+}
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0,10);
+}
+
+function dateToDisplay(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-CA", {weekday:"short", month:"short", day:"numeric", year:"numeric"});
+}
+
+// Fetch existing on-call events from Outlook for the window
+async function getExistingOncallDates(token, startDate, endDate) {
+  const url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+            + `?startDateTime=${startDate}T00:00:00&endDateTime=${endDate}T00:00:00`
+            + `&$top=999&$select=subject,start,end`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await r.json();
+  const occupied = new Set();
+  (data.value || []).forEach(ev => {
+    const s = ev.subject.toLowerCase();
+    if ((s.includes("on call") || s.includes("oncall")) && !s.includes("vacation")) {
+      const d = (ev.start.date || ev.start.dateTime.slice(0,10));
+      occupied.add(d);
+    }
+  });
+  return occupied;
+}
+
+async function getGraphToken() {
+  if (graphAccessToken) return graphAccessToken;
+  // Use refresh token from GitHub secret via a prompt — user must supply MS refresh token
+  const rt = localStorage.getItem("rbt_ms_refresh_token");
+  if (!rt) {
+    const entered = prompt("Enter your Microsoft Refresh Token to connect to Outlook:");
+    if (!entered) return null;
+    localStorage.setItem("rbt_ms_refresh_token", entered.trim());
+    return getGraphToken();
+  }
+  const ms_secret = prompt("Enter your Azure Client Secret:");
+  if (!ms_secret) return null;
+
+  const body = new URLSearchParams({
+    client_id:     MS_CLIENT_ID,
+    client_secret: ms_secret,
+    refresh_token: rt,
+    grant_type:    "refresh_token",
+    scope:         "Calendars.ReadWrite offline_access"
+  });
+  const r = await fetch(`https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/token`, {
+    method: "POST", body
+  });
+  const data = await r.json();
+  if (data.error) { alert("Auth error: " + data.error_description); localStorage.removeItem("rbt_ms_refresh_token"); return null; }
+  if (data.refresh_token) localStorage.setItem("rbt_ms_refresh_token", data.refresh_token);
+  graphAccessToken = data.access_token;
+  return graphAccessToken;
+}
+
+// Generate rotation schedule
+function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedDates) {
+  const CLEAR_AFTER = "2028-01-31";
+  const schedule = [];
+  const activeEmps = employees.filter(e => e.active !== false);
+  const n = activeEmps.length;
+  if (!n) return schedule;
+
+  // Determine shift: if rotDays >= 14 and employees >= 14, shift start day each full cycle
+  const shouldShift = rotDays >= 14 || n >= 14;
+  const shiftDays   = shouldShift ? 1 : 0;
+
+  let d = startDate;
+  let empIdx = 0;
+  let rotCount = 0; // how many rotation blocks assigned
+  let cycleShift = 0; // accumulated day shift
+
+  while (d <= endDate && d <= CLEAR_AFTER) {
+    const person = activeEmps[empIdx % n];
+
+    for (let i = 0; i < rotDays; i++) {
+      const day = addDays(d, i);
+      if (day > endDate || day > CLEAR_AFTER) break;
+      const occupied = occupiedDates ? occupiedDates.has(day) : false;
+      schedule.push({ date: day, person: person.name, occupied });
+    }
+
+    empIdx++;
+    rotCount++;
+    d = addDays(d, rotDays);
+
+    // After one full cycle through all employees, apply shift
+    if (shouldShift && rotCount % n === 0) {
+      cycleShift += shiftDays;
+      d = addDays(d, shiftDays);
+    }
+  }
+  return schedule;
+}
+
+async function previewRotation() {
+  const startDate = document.getElementById("rot-start").value;
+  const rotDays   = parseInt(document.getElementById("rot-days").value);
+  const activeEmps = (config.employees || []).filter(e => e.active !== false);
+  if (!startDate) { alert("Please select a start date."); return; }
+
+  // 7 months end date
+  const end = new Date(startDate + "T00:00:00");
+  end.setMonth(end.getMonth() + 7);
+  const endDate = end.toISOString().slice(0,10);
+
+  document.getElementById("rot-status").textContent = "Building preview...";
+
+  // Try to get existing occupied dates from Outlook
+  let occupiedDates = new Set();
+  const token = await getGraphToken();
+  if (token) {
+    occupiedDates = await getExistingOncallDates(token, startDate, endDate);
+  }
+
+  const schedule = buildRotationSchedule(startDate, endDate, rotDays, activeEmps, occupiedDates);
+  const newDays  = schedule.filter(s => !s.occupied);
+  const skipDays = schedule.filter(s => s.occupied);
+
+  // Render preview table
+  const tbody = document.getElementById("rot-table-body");
+  tbody.innerHTML = "";
+  schedule.forEach(s => {
+    const cls = s.occupied ? "rot-row-occupied" : "rot-row-new";
+    const status = s.occupied ? "&#x23E9; Already assigned" : "&#x2713; Will assign";
+    tbody.innerHTML += `<tr class="${cls}">
+      <td style="padding:6px 12px;">${dateToDisplay(s.date)}</td>
+      <td style="padding:6px 12px;font-weight:600;">${s.person}</td>
+      <td style="padding:6px 12px;">${status}</td>
+    </tr>`;
+  });
+
+  const n = activeEmps.length;
+  const cycle = rotDays * n;
+  document.getElementById("rot-summary").textContent =
+    `${activeEmps.length} active employees  •  ${rotDays}-day blocks  •  ${cycle}-day cycle  •  ${newDays.length} days to assign, ${skipDays.length} already occupied`;
+
+  document.getElementById("rot-preview").style.display = "block";
+  document.getElementById("rot-push-btn").style.display = token ? "inline-flex" : "none";
+  document.getElementById("rot-status").textContent = token ? "Ready to push." : "Preview only — log in to Outlook to push.";
+
+  // Store for push
+  window._rotSchedule = { schedule: newDays, token, endDate };
+}
+
+async function pushRotation() {
+  const { schedule, token, endDate } = window._rotSchedule || {};
+  if (!schedule || !token) { alert("Please preview first."); return; }
+  if (!confirm(`Push ${schedule.length} new on-call days to Outlook?`)) return;
+
+  const btn = document.getElementById("rot-push-btn");
+  btn.textContent = "Pushing..."; btn.disabled = true;
+
+  const rotDays = parseInt(document.getElementById("rot-days").value);
+  let pushed = 0, failed = 0;
+
+  for (const s of schedule) {
+    const endDay = addDays(s.date, rotDays);
+    const body = JSON.stringify({
+      subject:   `${s.person} On Call`,
+      start:     { date: s.date,   timeZone: "UTC" },
+      end:       { date: endDay,   timeZone: "UTC" },
+      isAllDay:  true
+    });
+    try {
+      const r = await fetch(`https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/events`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body
+      });
+      if (r.ok) pushed++; else failed++;
+    } catch { failed++; }
+    // Small delay to avoid throttling
+    await new Promise(res => setTimeout(res, 100));
+  }
+
+  btn.textContent = "&#x2B06; Push to Outlook"; btn.disabled = false;
+  document.getElementById("rot-status").textContent =
+    `Done! ${pushed} events created${failed ? `, ${failed} failed` : ""}. Refresh calendars to update the site.`;
+
+  if (pushed > 0) {
+    // Trigger calendar refresh
+    const ghToken = document.getElementById("gh-token").value;
+    if (ghToken) refreshCalendars();
+  }
 }
 
 loadConfigAndCheck();
