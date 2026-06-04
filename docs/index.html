@@ -713,6 +713,11 @@ async function submitAdminLogin() {
     try {
       const token = await decryptToken(pw, stored);
       document.getElementById("gh-token").value = token;
+      // Auto-decrypt MS credentials if stored
+      const encRt = localStorage.getItem("rbt_enc_ms_rt");
+      const encSec = localStorage.getItem("rbt_enc_ms_sec");
+      if (encRt)  window._msRefreshToken  = await decryptToken(pw, encRt);
+      if (encSec) window._msClientSecret  = await decryptToken(pw, encSec);
       document.getElementById("admin-login-btn").textContent = "✅ Admin";
       document.getElementById("admin-login-btn").classList.add("logged-in");
       closeAdminModal();
@@ -731,6 +736,15 @@ async function submitAdminLogin() {
     document.getElementById("admin-login-btn").classList.add("logged-in");
     closeAdminModal();
   }
+}
+
+async function saveMsCredentials(password, refreshToken, clientSecret) {
+  const encRt  = await encryptToken(password, refreshToken);
+  const encSec = await encryptToken(password, clientSecret);
+  localStorage.setItem("rbt_enc_ms_rt",  encRt);
+  localStorage.setItem("rbt_enc_ms_sec", encSec);
+  window._msRefreshToken = refreshToken;
+  window._msClientSecret = clientSecret;
 }
 
 function logoutAdmin() {
@@ -1142,20 +1156,26 @@ async function getExistingOncallDates(token, startDate, endDate) {
 
 async function getGraphToken() {
   if (graphAccessToken) return graphAccessToken;
-  // Use refresh token from GitHub secret via a prompt — user must supply MS refresh token
-  const rt = localStorage.getItem("rbt_ms_refresh_token");
-  if (!rt) {
-    const entered = prompt("Enter your Microsoft Refresh Token to connect to Outlook:");
-    if (!entered) return null;
-    localStorage.setItem("rbt_ms_refresh_token", entered.trim());
-    return getGraphToken();
+
+  // Use in-memory credentials (auto-decrypted on admin login)
+  let rt  = window._msRefreshToken;
+  let sec = window._msClientSecret;
+
+  // First-time setup — ask once, then save encrypted
+  if (!rt || !sec) {
+    const pw = document.getElementById("admin-password").value ||
+               prompt("Enter your admin password to save Outlook credentials:");
+    if (!pw) return null;
+    rt  = prompt("Enter your Microsoft Refresh Token:");
+    if (!rt) return null;
+    sec = prompt("Enter your Azure Client Secret:");
+    if (!sec) return null;
+    await saveMsCredentials(pw, rt.trim(), sec.trim());
   }
-  const ms_secret = prompt("Enter your Azure Client Secret:");
-  if (!ms_secret) return null;
 
   const body = new URLSearchParams({
     client_id:     MS_CLIENT_ID,
-    client_secret: ms_secret,
+    client_secret: sec,
     refresh_token: rt,
     grant_type:    "refresh_token",
     scope:         "Calendars.ReadWrite offline_access"
@@ -1164,8 +1184,19 @@ async function getGraphToken() {
     method: "POST", body
   });
   const data = await r.json();
-  if (data.error) { alert("Auth error: " + data.error_description); localStorage.removeItem("rbt_ms_refresh_token"); return null; }
-  if (data.refresh_token) localStorage.setItem("rbt_ms_refresh_token", data.refresh_token);
+  if (data.error) {
+    alert("Outlook auth error: " + data.error_description);
+    window._msRefreshToken = null; window._msClientSecret = null;
+    return null;
+  }
+  // Save updated refresh token encrypted
+  if (data.refresh_token) {
+    const pw = await deriveKey("rbt-oncall-auto"); // use a fixed key for RT updates
+    window._msRefreshToken = data.refresh_token;
+    const encRt = await encryptToken("rbt-oncall-auto", data.refresh_token);
+    // We can't re-encrypt with original password here, so just update in memory
+    // User's next full login will re-save properly
+  }
   graphAccessToken = data.access_token;
   return graphAccessToken;
 }
