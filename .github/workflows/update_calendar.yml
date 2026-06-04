@@ -31,6 +31,11 @@ jobs:
           python-version: '3.11'
 
       - name: Generate all ICS calendars
+        env:
+          MS_CLIENT_ID:     ${{ secrets.MS_CLIENT_ID }}
+          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
+          MS_TENANT_ID:     ${{ secrets.MS_TENANT_ID }}
+          MS_REFRESH_TOKEN: ${{ secrets.MS_REFRESH_TOKEN }}
         run: python generate.py
 
       - name: Ensure .nojekyll exists

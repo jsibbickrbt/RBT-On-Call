@@ -11,6 +11,7 @@ Handles:
 """
 
 import urllib.request
+import urllib.parse
 import json
 import os
 import re
@@ -19,11 +20,76 @@ from datetime import datetime, date, timedelta
 with open("config.json") as f:
     CONFIG = json.load(f)
 
-CALENDAR_URL = CONFIG["calendar_url"]
+CALENDAR_URL = CONFIG.get("calendar_url", "")
 OUTPUT_DIR   = "docs"
 
 
-# ── ICS parsing ──────────────────────────────────────────────────────────────
+# ── Microsoft Graph API ───────────────────────────────────────────────────────
+
+def get_access_token():
+    """Exchange refresh token for a fresh access token."""
+    data = urllib.parse.urlencode({
+        "client_id":     os.environ["MS_CLIENT_ID"],
+        "client_secret": os.environ["MS_CLIENT_SECRET"],
+        "refresh_token": os.environ["MS_REFRESH_TOKEN"],
+        "grant_type":    "refresh_token",
+        "scope":         "Calendars.ReadWrite offline_access",
+    }).encode()
+    req = urllib.request.Request(
+        f"https://login.microsoftonline.com/{os.environ['MS_TENANT_ID']}/oauth2/v2.0/token",
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+    with urllib.request.urlopen(req) as r:
+        return json.loads(r.read())["access_token"]
+
+
+def fetch_calendar_graph(access_token):
+    """Fetch all calendar events from Graph API (2-year window)."""
+    start = date.today().strftime("%Y-%m-%dT00:00:00")
+    end   = (date.today() + timedelta(days=730)).strftime("%Y-%m-%dT00:00:00")
+    url   = (f"https://graph.microsoft.com/v1.0/me/calendarView"
+             f"?startDateTime={start}&endDateTime={end}"
+             f"&$top=999&$select=subject,start,end,id,isAllDay")
+    headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
+    events = []
+    while url:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req) as r:
+            data = json.loads(r.read())
+        events.extend(data.get("value", []))
+        url = data.get("@odata.nextLink")
+    return events
+
+
+def graph_to_ics(events):
+    """Convert Graph API JSON events to ICS text for existing parser."""
+    blocks = []
+    for ev in events:
+        subject = ev.get("subject", "").replace("\n", " ")
+        uid     = ev.get("id", "")
+        s       = ev.get("start", {})
+        e       = ev.get("end", {})
+        # Use date portion only
+        dtstart = (s.get("date") or s.get("dateTime", "")[:10]).replace("-", "")
+        dtend   = (e.get("date") or e.get("dateTime", "")[:10]).replace("-", "")
+        if not dtstart:
+            continue
+        if not dtend or dtend == dtstart:
+            d     = datetime.strptime(dtstart, "%Y%m%d").date()
+            dtend = (d + timedelta(days=1)).strftime("%Y%m%d")
+        blocks.append(
+            f"BEGIN:VEVENT\n"
+            f"UID:{uid}\n"
+            f"SUMMARY:{subject}\n"
+            f"DTSTART;VALUE=DATE:{dtstart}\n"
+            f"DTEND;VALUE=DATE:{dtend}\n"
+            f"END:VEVENT"
+        )
+    return "BEGIN:VCALENDAR\nVERSION:2.0\n" + "\n".join(blocks) + "\nEND:VCALENDAR"
+
+
+# ── ICS URL fallback ──────────────────────────────────────────────────────────
 
 def fetch_calendar(url):
     with urllib.request.urlopen(url) as r:
@@ -309,8 +375,19 @@ def build_ics(all_events, name):
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    print("Fetching RBT calendar...")
-    raw    = fetch_calendar(CALENDAR_URL)
+    use_graph = all(os.environ.get(k) for k in
+                    ("MS_CLIENT_ID", "MS_CLIENT_SECRET", "MS_TENANT_ID", "MS_REFRESH_TOKEN"))
+
+    if use_graph:
+        print("Fetching calendar via Microsoft Graph API (2-year window)...")
+        token        = get_access_token()
+        graph_events = fetch_calendar_graph(token)
+        raw          = graph_to_ics(graph_events)
+        print(f"  {len(graph_events)} events fetched from Graph API")
+    else:
+        print("Fetching calendar via ICS URL (fallback)...")
+        raw = fetch_calendar(CALENDAR_URL)
+
     events = parse_events(raw)
     print(f"  {len(events)} total events parsed")
 
