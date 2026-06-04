@@ -1475,7 +1475,9 @@ async function clearOncallEvents() {
     await new Promise(res => setTimeout(res, 80));
   }
 
-  statusEl.textContent = `Done — ${deleted} events deleted${failed ? `, ${failed} failed` : ""}. Refresh calendars to update the site.`;
+  const msg = `Done — ${deleted} of ${toDelete.length} deleted${failed ? `, ${failed} failed` : ""}.`;
+  statusEl.textContent = msg;
+  alert(msg);
   btn.disabled = false;
 
   const ghToken = document.getElementById("gh-token").value;
