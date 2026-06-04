@@ -449,6 +449,7 @@
       </div>
       <button class="btn-sm blue" onclick="previewRotation()">&#x1F441; Preview</button>
       <button class="btn-sm green" id="rot-push-btn" onclick="pushRotation()" style="display:none;">&#x2B06; Push to Outlook</button>
+      <button class="btn-sm orange" id="rot-rebalance-btn" onclick="rebalanceRotation()">&#x2696; Rebalance</button>
     </div>
     <div id="rot-preview" style="display:none;">
       <div style="font-size:0.8rem;color:#6b7280;margin-bottom:8px;" id="rot-summary"></div>
@@ -1411,6 +1412,123 @@ async function pushRotation() {
     const ghToken = document.getElementById("gh-token").value;
     if (ghToken) refreshCalendars();
   }
+}
+
+async function rebalanceRotation() {
+  const token = await getGraphToken();
+  if (!token) return;
+
+  const activeEmps   = (config.employees || []).filter(e => e.active !== false);
+  const inactiveNames = (config.employees || []).filter(e => e.active === false).map(e => e.name.toLowerCase());
+  const rotDays = parseInt(document.getElementById("rot-days").value) || 1;
+  const n = activeEmps.length;
+
+  if (!n) { alert("No active employees."); return; }
+
+  const today     = new Date().toISOString().slice(0,10);
+  const endDate   = (() => { const d = new Date(); d.setMonth(d.getMonth()+7); return d.toISOString().slice(0,10); })();
+  const statusEl  = document.getElementById("rot-status");
+  const btn       = document.getElementById("rot-rebalance-btn");
+
+  // Determine shift threshold
+  const shouldShift = rotDays >= 14 || n >= 14 || n === 7;
+
+  btn.disabled = true;
+  statusEl.textContent = "Finding events to rebalance...";
+
+  // Step 1 — fetch all future on-call events
+  let fetchUrl = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+               + `?startDateTime=${today}T00:00:00&endDateTime=${endDate}T00:00:00`
+               + `&$top=999&$select=id,subject,start`;
+  const allEvents = [];
+  while (fetchUrl) {
+    const r = await fetch(fetchUrl, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await r.json();
+    (data.value || []).forEach(ev => allEvents.push(ev));
+    fetchUrl = data["@odata.nextLink"] || null;
+  }
+
+  const oncallEvents = allEvents.filter(ev => {
+    const s = (ev.subject || "").toLowerCase();
+    return (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
+  });
+
+  // Step 2 — delete events for inactive employees
+  const toDelete = oncallEvents.filter(ev =>
+    inactiveNames.some(n => (ev.subject || "").toLowerCase().includes(n))
+  );
+
+  statusEl.textContent = `Removing ${toDelete.length} events for inactive employees...`;
+
+  let deleted = 0;
+  for (const ev of toDelete) {
+    const dr = await fetch(`https://graph.microsoft.com/v1.0/me/events/${ev.id}`, {
+      method: "DELETE", headers: { Authorization: `Bearer ${token}` }
+    });
+    if (dr.ok || dr.status === 204) deleted++;
+    await new Promise(res => setTimeout(res, 80));
+  }
+
+  // Step 3 — find occupied dates (remaining active events)
+  const remainingActive = oncallEvents
+    .filter(ev => !toDelete.includes(ev))
+    .map(ev => ev.start?.date || ev.start?.dateTime?.slice(0,10))
+    .filter(Boolean);
+  const occupiedDates = new Set(remainingActive);
+
+  // Step 4 — find last assigned person to continue rotation in order
+  // Sort remaining events by date and find who was last assigned
+  const sortedRemaining = oncallEvents
+    .filter(ev => !toDelete.includes(ev))
+    .sort((a,b) => {
+      const da = a.start?.date || a.start?.dateTime?.slice(0,10);
+      const db = b.start?.date || b.start?.dateTime?.slice(0,10);
+      return da > db ? -1 : 1;
+    });
+
+  let startEmpIdx = 0;
+  if (sortedRemaining.length) {
+    const lastSubject = (sortedRemaining[0].subject || "").toLowerCase();
+    const lastPerson = activeEmps.findIndex(e => lastSubject.includes(e.name.toLowerCase()));
+    if (lastPerson >= 0) startEmpIdx = (lastPerson + 1) % n;
+  }
+
+  // Step 5 — generate and push new events for empty days
+  statusEl.textContent = "Filling empty days...";
+
+  const schedule = buildRotationSchedule(today, endDate, rotDays, activeEmps, occupiedDates);
+  const toAdd = schedule.filter(s => !s.occupied);
+
+  // Re-order starting from the correct employee in the rotation
+  // Assign based on position in the new schedule
+  let pushed = 0, failed = 0;
+  for (let i = 0; i < toAdd.length; i++) {
+    const person = activeEmps[(startEmpIdx + i) % n].name;
+    const endDay = addDays(toAdd[i].date, rotDays);
+    const body = JSON.stringify({
+      subject:  `${person} On Call`,
+      start:    { dateTime: `${toAdd[i].date}T00:00:00`, timeZone: "America/Toronto" },
+      end:      { dateTime: `${endDay}T00:00:00`, timeZone: "America/Toronto" },
+      isAllDay: true
+    });
+    try {
+      const r = await fetch(`https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/events`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body
+      });
+      if (r.ok) pushed++; else failed++;
+    } catch { failed++; }
+    await new Promise(res => setTimeout(res, 100));
+  }
+
+  btn.disabled = false;
+  const msg = `Rebalance complete!\n• ${deleted} removed (inactive employees)\n• ${pushed} new days assigned${failed ? `\n• ${failed} failed` : ""}\n• ${n} active employees${shouldShift ? " (day-shift applied)" : ""}`;
+  statusEl.textContent = msg.replace(/\n/g, "  ");
+  alert(msg);
+
+  const ghToken = document.getElementById("gh-token").value;
+  if (ghToken) refreshCalendars();
 }
 
 async function clearOncallEvents() {
