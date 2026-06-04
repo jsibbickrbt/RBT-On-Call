@@ -1544,44 +1544,62 @@ async function rebalanceRotation() {
     await new Promise(res => setTimeout(res, 80));
   }
 
-  // Step 3 — find occupied dates (remaining active events)
-  const remainingActive = oncallEvents
+  // Step 3 — build date → person index map from remaining events
+  const remaining = oncallEvents
     .filter(ev => !toDelete.includes(ev))
-    .map(ev => ev.start?.date || ev.start?.dateTime?.slice(0,10))
-    .filter(Boolean);
-  const occupiedDates = new Set(remainingActive);
+    .map(ev => ({
+      date:    ev.start?.date || ev.start?.dateTime?.slice(0,10),
+      subject: ev.subject || ""
+    }))
+    .filter(ev => ev.date)
+    .sort((a,b) => a.date.localeCompare(b.date));
 
-  // Step 4 — find last assigned person to continue rotation in order
-  // Sort remaining events by date and find who was last assigned
-  const sortedRemaining = oncallEvents
-    .filter(ev => !toDelete.includes(ev))
-    .sort((a,b) => {
-      const da = a.start?.date || a.start?.dateTime?.slice(0,10);
-      const db = b.start?.date || b.start?.dateTime?.slice(0,10);
-      return da > db ? -1 : 1;
-    });
+  const occupiedDates = new Set(remaining.map(ev => ev.date));
 
-  let startEmpIdx = 0;
-  if (sortedRemaining.length) {
-    const lastSubject = (sortedRemaining[0].subject || "").toLowerCase();
-    const lastPerson = activeEmps.findIndex(e => lastSubject.includes(e.name.toLowerCase()));
-    if (lastPerson >= 0) startEmpIdx = (lastPerson + 1) % n;
-  }
+  // Map each assigned date to the employee's index in activeEmps
+  const dateToIdx = {};
+  remaining.forEach(ev => {
+    const idx = activeEmps.findIndex(e =>
+      ev.subject.toLowerCase().includes(e.name.toLowerCase())
+    );
+    if (idx >= 0) dateToIdx[ev.date] = idx;
+  });
 
-  // Step 5 — generate and push new events for empty days
+  // Step 4 — find all empty days and assign correct person by continuing pattern
   statusEl.textContent = "Filling empty days...";
 
-  const schedule = buildRotationSchedule(today, endDate, rotDays, activeEmps, occupiedDates);
-  const toAdd = schedule.filter(s => !s.occupied);
+  const toAdd = [];
+  let d = today;
+  while (d <= endDate) {
+    if (!occupiedDates.has(d)) {
+      // Walk backward to find the nearest previous assigned day
+      let prev = addDays(d, -rotDays);
+      let stepsAhead = 1;
+      while (prev >= today && dateToIdx[prev] === undefined) {
+        prev = addDays(prev, -rotDays);
+        stepsAhead++;
+      }
+      let personIdx;
+      if (dateToIdx[prev] !== undefined) {
+        personIdx = (dateToIdx[prev] + stepsAhead) % n;
+      } else {
+        // No prior event found — look forward for anchor
+        let next = addDays(d, rotDays);
+        while (next <= endDate && dateToIdx[next] === undefined) next = addDays(next, rotDays);
+        personIdx = dateToIdx[next] !== undefined ? ((dateToIdx[next] - 1 + n) % n) : 0;
+      }
+      toAdd.push({ date: d, person: activeEmps[personIdx].name });
+      // Register so subsequent gaps chain off this assignment
+      dateToIdx[d] = personIdx;
+    }
+    d = addDays(d, rotDays);
+  }
 
-  // Re-order starting from the correct employee in the rotation
-  // Assign based on position in the new schedule
   let pushed = 0, failed = 0;
   for (let i = 0; i < toAdd.length; i++) {
-    const person = activeEmps[(startEmpIdx + i) % n].name;
     const endDay = addDays(toAdd[i].date, rotDays);
     const body = JSON.stringify({
-      subject:  `${person} On Call`,
+      subject:  `${toAdd[i].person} On Call`,
       start:    { dateTime: `${toAdd[i].date}T00:00:00`, timeZone: "America/Toronto" },
       end:      { dateTime: `${endDay}T00:00:00`, timeZone: "America/Toronto" },
       isAllDay: true
