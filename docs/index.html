@@ -723,8 +723,7 @@ async function refreshCalendars() {
       { method:"POST", headers:{"Authorization":`Bearer ${token}`,"Content-Type":"application/json","Accept":"application/vnd.github+json"}, body:JSON.stringify({ref:"main",inputs:{}}) }
     );
     if (resp.status === 204) {
-      setStatus("✅ Calendar refresh triggered — reloading in 3s…", "ok");
-      setTimeout(() => location.reload(), 3000);
+      setStatus("✅ Calendar refresh triggered — updating in ~2 min", "ok");
     } else {
       const err = await resp.json().catch(() => ({}));
       throw new Error(err.message || `HTTP ${resp.status}`);
@@ -753,9 +752,12 @@ async function saveConfig() {
       body:JSON.stringify({message:"Update config via web UI",content,sha:data.sha})
     });
     if (res.ok) {
-      setStatus("✅ Saved! Reloading in 3s…", "ok");
       config = newConfig;
-      setTimeout(() => location.reload(), 3000);
+      setStatus("✅ Saved!", "ok");
+      renderEmployees();
+      renderOffice();
+      initRotationPlanner();
+      checkAllConflicts();
     } else {
       const err = await res.json();
       setStatus("❌ " + (err.message || "Unknown error"), "err");
