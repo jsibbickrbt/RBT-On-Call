@@ -44,11 +44,13 @@ def get_access_token():
         return json.loads(r.read())["access_token"]
 
 
+GRAPH_CALENDAR_ID = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAAHInXdAAA="
+
 def fetch_calendar_graph(access_token):
     """Fetch all calendar events from Graph API (2-year window)."""
     start = date.today().strftime("%Y-%m-%dT00:00:00")
     end   = (date.today() + timedelta(days=730)).strftime("%Y-%m-%dT00:00:00")
-    url   = (f"https://graph.microsoft.com/v1.0/me/calendarView"
+    url   = (f"https://graph.microsoft.com/v1.0/me/calendars/{GRAPH_CALENDAR_ID}/calendarView"
              f"?startDateTime={start}&endDateTime={end}"
              f"&$top=999&$select=subject,start,end,id,isAllDay")
     headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
