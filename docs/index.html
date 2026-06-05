@@ -647,11 +647,18 @@
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
           <div class="field"><label class="field-label">Full Name (ALL CAPS)</label><input type="text" id="dir-new-name" placeholder="JOHN SMITH" style="max-width:180px;" /></div>
           <div class="field"><label class="field-label">Phone</label><input type="text" id="dir-new-phone" placeholder="519-555-1234" style="max-width:150px;" /></div>
-          <div class="field"><label class="field-label">Dept</label><input type="text" id="dir-new-dept" placeholder="ELECTRICIAN" style="max-width:150px;" /></div>
           <div class="field"><label class="field-label">Type</label>
-            <select id="dir-new-type" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;">
+            <select id="dir-new-type" onchange="dirUpdateRoles()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;">
               <option value="field">Field</option>
               <option value="office">Office</option>
+            </select>
+          </div>
+          <div class="field"><label class="field-label">Role</label>
+            <select id="dir-new-dept" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;min-width:160px;">
+              <option>ELECTRICIAN</option>
+              <option>APPRENTICE</option>
+              <option>GENERAL LABORER</option>
+              <option>FOREMAN</option>
             </select>
           </div>
           <div class="field" id="dir-ext-field" style="display:none;"><label class="field-label">Ext.</label><input type="text" id="dir-new-ext" placeholder="101" style="max-width:80px;" /></div>
@@ -729,12 +736,15 @@ function renderDirectory(data, filter = "") {
   const oncallNames = new Set((config.employees || []).map(e => e.name.toLowerCase()));
   const oncallActive = new Set((config.employees || []).filter(e => e.active !== false).map(e => e.name.toLowerCase()));
 
-  const all = [
-    ...(data.field_employees  || []).map(e => ({ ...e, ext: "" })),
-    ...(data.office_employees || [])
-  ].filter(e => !f || e.name.toLowerCase().includes(f) || e.phone.includes(f));
+  const fieldEmps  = (data.field_employees  || []).map(e => ({ ...e, ext: "", _section: "field"  })).filter(e => !f || e.name.toLowerCase().includes(f) || e.phone.includes(f));
+  const officeEmps = (data.office_employees || []).map(e => ({ ...e, _section: "office" })).filter(e => !f || e.name.toLowerCase().includes(f) || e.phone.includes(f));
+  const all = [...fieldEmps, ...officeEmps];
 
-  document.getElementById("dir-all-body").innerHTML = all.map((e, i) => {
+  const fieldHeader  = fieldEmps.length  ? `<tr><td colspan="8" style="padding:6px 12px;background:#f0fdf4;font-size:0.72rem;font-weight:700;color:#2d6a27;letter-spacing:0.06em;border-bottom:1px solid #bbf7d0;">&#x1F477; FIELD EMPLOYEES</td></tr>` : "";
+  const sep = officeEmps.length ? `<tr><td colspan="8" style="padding:6px 12px;background:#f0fdf4;font-size:0.72rem;font-weight:700;color:#2d6a27;letter-spacing:0.06em;border-top:2px solid #bbf7d0;border-bottom:1px solid #bbf7d0;">&#x1F3E2; OFFICE &amp; AUTOMATION</td></tr>` : "";
+
+  document.getElementById("dir-all-body").innerHTML = fieldHeader + all.map((e, i) => {
+    const insertSep = e._section === "office" && (i === 0 || all[i-1]._section === "field") ? sep : "";
     const firstName  = e.name.split(" ")[0];
     const firstLower = firstName.toLowerCase();
     const empIdx     = (config.employees || []).findIndex(emp => emp.name.toLowerCase() === firstLower);
@@ -760,7 +770,7 @@ function renderDirectory(data, filter = "") {
         <button class="btn-sm blue" style="font-size:0.7rem;padding:3px 8px;" onclick="viewCalendar('${firstName}')">&#x1F4C6; View</button>
       </div>`;
 
-    return `<tr style="${i%2===1?"background:#f9fafb":""}">
+    return insertSep + `<tr style="${i%2===1?"background:#f9fafb":""}">
       <td style="padding:8px 12px;font-size:0.82rem;color:#9ca3af;">${i+1}</td>
       <td style="padding:8px 12px;font-size:0.875rem;font-weight:600;">${e.name}</td>
       <td style="padding:8px 12px;font-size:0.875rem;"><a href="tel:${e.phone}" style="color:#2d6a27;text-decoration:none;">${e.phone}</a></td>
@@ -777,19 +787,25 @@ function filterDirectory() {
   if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
 }
 
+function dirUpdateRoles() {
+  const type = document.getElementById("dir-new-type").value;
+  const sel  = document.getElementById("dir-new-dept");
+  const fieldRoles  = ["ELECTRICIAN","APPRENTICE","GENERAL LABORER","FOREMAN"];
+  const officeRoles = ["OFFICE","AUTOMATION","PROJECT MANAGER","ESTIMATOR"];
+  const roles = type === "field" ? fieldRoles : officeRoles;
+  sel.innerHTML = roles.map(r => `<option>${r}</option>`).join("");
+  document.getElementById("dir-ext-field").style.display = type === "office" ? "block" : "none";
+}
+
 function dirShowAddForm() {
   document.getElementById("dir-add-form").style.display = "block";
+  dirUpdateRoles();
   document.getElementById("dir-new-name").focus();
 }
 function dirHideAddForm() {
   document.getElementById("dir-add-form").style.display = "none";
   ["dir-new-name","dir-new-phone","dir-new-dept","dir-new-ext"].forEach(id => document.getElementById(id).value = "");
 }
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("dir-new-type")?.addEventListener("change", e => {
-    document.getElementById("dir-ext-field").style.display = e.target.value === "office" ? "block" : "none";
-  });
-});
 
 function dirAddPerson() {
   const name  = document.getElementById("dir-new-name").value.trim().toUpperCase();
