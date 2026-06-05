@@ -633,10 +633,34 @@
             <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Role</th>
             <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">On-Call</th>
             <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Calendar</th>
+            <th style="width:40px;border-bottom:2px solid #e5e7eb;"></th>
           </tr>
         </thead>
         <tbody id="dir-all-body"></tbody>
       </table>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;">
+        <button class="btn-add-emp" onclick="dirShowAddForm()">+ Add Person</button>
+        <span id="dir-add-status" style="font-size:0.82rem;color:#6b7280;"></span>
+      </div>
+      <!-- Add person form -->
+      <div id="dir-add-form" style="display:none;margin-top:14px;padding:16px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <div class="field"><label class="field-label">Full Name (ALL CAPS)</label><input type="text" id="dir-new-name" placeholder="JOHN SMITH" style="max-width:180px;" /></div>
+          <div class="field"><label class="field-label">Phone</label><input type="text" id="dir-new-phone" placeholder="519-555-1234" style="max-width:150px;" /></div>
+          <div class="field"><label class="field-label">Dept</label><input type="text" id="dir-new-dept" placeholder="ELECTRICIAN" style="max-width:150px;" /></div>
+          <div class="field"><label class="field-label">Type</label>
+            <select id="dir-new-type" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;">
+              <option value="field">Field</option>
+              <option value="office">Office</option>
+            </select>
+          </div>
+          <div class="field" id="dir-ext-field" style="display:none;"><label class="field-label">Ext.</label><input type="text" id="dir-new-ext" placeholder="101" style="max-width:80px;" /></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm green" onclick="dirAddPerson()">Add</button>
+          <button class="btn-sm gray" onclick="dirHideAddForm()">Cancel</button>
+        </div>
+      </div>
     </div>
   </div><!-- end tab-directory -->
 
@@ -743,12 +767,73 @@ function renderDirectory(data, filter = "") {
       <td style="padding:8px 12px;font-size:0.82rem;color:#6b7280;">${e.department}</td>
       <td style="padding:8px 12px;">${oncallBadge}</td>
       <td style="padding:6px 12px;">${calLinks}</td>
+      <td style="padding:6px 12px;"><button class="btn-danger-sm" onclick="dirDeletePerson('${e.name}')" title="Remove from directory">✕</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="7" style="padding:16px;color:#9ca3af;text-align:center;">No results</td></tr>`;
 }
 
 function filterDirectory() {
   if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
+}
+
+function dirShowAddForm() {
+  document.getElementById("dir-add-form").style.display = "block";
+  document.getElementById("dir-new-name").focus();
+}
+function dirHideAddForm() {
+  document.getElementById("dir-add-form").style.display = "none";
+  ["dir-new-name","dir-new-phone","dir-new-dept","dir-new-ext"].forEach(id => document.getElementById(id).value = "");
+}
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("dir-new-type")?.addEventListener("change", e => {
+    document.getElementById("dir-ext-field").style.display = e.target.value === "office" ? "block" : "none";
+  });
+});
+
+function dirAddPerson() {
+  const name  = document.getElementById("dir-new-name").value.trim().toUpperCase();
+  const phone = document.getElementById("dir-new-phone").value.trim();
+  const dept  = document.getElementById("dir-new-dept").value.trim().toUpperCase();
+  const type  = document.getElementById("dir-new-type").value;
+  const ext   = document.getElementById("dir-new-ext").value.trim() || "N/A";
+  if (!name || !phone) { alert("Name and phone are required."); return; }
+  if (type === "field") {
+    directoryData.field_employees.push({ name, phone, department: dept || "FIELD" });
+  } else {
+    directoryData.office_employees.push({ name, phone, ext, department: dept || "OFFICE" });
+  }
+  dirHideAddForm();
+  renderDirectory(directoryData, document.getElementById("dir-search").value);
+  saveDirectory();
+}
+
+function dirDeletePerson(fullName) {
+  if (!confirm(`Remove ${fullName} from the directory?`)) return;
+  directoryData.field_employees  = (directoryData.field_employees  || []).filter(e => e.name !== fullName);
+  directoryData.office_employees = (directoryData.office_employees || []).filter(e => e.name !== fullName);
+  renderDirectory(directoryData, document.getElementById("dir-search").value);
+  saveDirectory();
+}
+
+async function saveDirectory() {
+  const ghToken = document.getElementById("gh-token").value;
+  if (!ghToken) { document.getElementById("dir-add-status").textContent = "❌ Admin login required to save."; return; }
+  document.getElementById("dir-add-status").textContent = "Saving...";
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/directory.json`,
+      { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
+    const existing = await r.json();
+    const content = btoa(encodeURIComponent(JSON.stringify(directoryData, null, 2)).replace(/%([0-9A-F]{2})/g, (_,p) => String.fromCharCode(parseInt(p,16))));
+    const resp = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/directory.json`, {
+      method: "PUT",
+      headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Update directory", content, sha: existing.sha })
+    });
+    document.getElementById("dir-add-status").textContent = resp.ok ? "✅ Directory saved!" : "❌ Save failed";
+    setTimeout(() => document.getElementById("dir-add-status").textContent = "", 3000);
+  } catch(e) {
+    document.getElementById("dir-add-status").textContent = "❌ " + e.message;
+  }
 }
 
 function dirToggleActive(firstName, active) {
