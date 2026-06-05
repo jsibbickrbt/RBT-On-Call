@@ -1599,15 +1599,20 @@ async function rebalanceRotation() {
     inactiveNames.some(n => (ev.subject || "").toLowerCase().includes(n))
   );
 
-  statusEl.textContent = `Removing ${toDelete.length} events for inactive employees...`;
+  statusEl.textContent = `Removing ${toDelete.length} events in batches...`;
 
   let deleted = 0;
-  for (const ev of toDelete) {
-    const dr = await fetch(`https://graph.microsoft.com/v1.0/me/events/${ev.id}`, {
-      method: "DELETE", headers: { Authorization: `Bearer ${token}` }
-    });
-    if (dr.ok || dr.status === 204) deleted++;
-    await new Promise(res => setTimeout(res, 80));
+  for (let bi = 0; bi < toDelete.length; bi += 20) {
+    const chunk = toDelete.slice(bi, bi + 20);
+    const batchBody = { requests: chunk.map((ev, j) => ({ id: String(j+1), method: "DELETE", url: `/me/events/${ev.id}` })) };
+    try {
+      const r = await fetch("https://graph.microsoft.com/v1.0/$batch", {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(batchBody)
+      });
+      if (r.ok) { const res = await r.json(); res.responses.forEach(resp => { if (resp.status < 300) deleted++; }); }
+    } catch {}
+    await new Promise(res => setTimeout(res, 300));
   }
 
   // Step 3 — build date → person index map from remaining events
@@ -1874,27 +1879,36 @@ async function clearOncallEvents() {
   }
 
   await backupCalendar(true);
-  statusEl.textContent = `Deleting ${toDelete.length} events...`;
+  statusEl.textContent = `Deleting ${toDelete.length} events in batches...`;
   let deleted = 0, failed = 0;
+  const BATCH_SIZE = 20;
 
-  for (let ci = 0; ci < toDelete.length; ci++) {
-    const ev = toDelete[ci];
-    setProgress("clear-bar", "clear-progress", "clear-bar-label", ci + 1, toDelete.length, `${deleted} ✓`);
-    try {
-      const dr = await fetch(`https://graph.microsoft.com/v1.0/me/events/${ev.id}`, {
+  for (let i = 0; i < toDelete.length; i += BATCH_SIZE) {
+    const chunk = toDelete.slice(i, i + BATCH_SIZE);
+    const batchBody = {
+      requests: chunk.map((ev, j) => ({
+        id: String(j + 1),
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        url: `/me/events/${ev.id}`
+      }))
+    };
+    try {
+      const r = await fetch("https://graph.microsoft.com/v1.0/$batch", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(batchBody)
       });
-      if (dr.ok || dr.status === 204) {
-        deleted++;
-        console.log(`Deleted: ${ev.subject}`);
-      } else {
-        const errText = await dr.text();
-        console.error(`Failed to delete "${ev.subject}" (${ev.id}): ${dr.status} ${errText}`);
-        failed++;
-      }
-    } catch(e) { console.error("Delete exception:", e); failed++; }
-    await new Promise(res => setTimeout(res, 80));
+      if (r.ok) {
+        const result = await r.json();
+        result.responses.forEach(resp => {
+          if (resp.status >= 200 && resp.status < 300) deleted++;
+          else failed++;
+        });
+      } else { failed += chunk.length; }
+    } catch(e) { failed += chunk.length; }
+
+    setProgress("clear-bar", "clear-progress", "clear-bar-label", Math.min(i + BATCH_SIZE, toDelete.length), toDelete.length, `${deleted} ✓`);
+    await new Promise(res => setTimeout(res, 300)); // small pause between batches
   }
 
   hideProgress("clear-progress");
