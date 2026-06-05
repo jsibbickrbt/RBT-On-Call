@@ -1887,17 +1887,18 @@ async function backupCalendar(silent = false) {
   if (!silent) statusEl.textContent = "Backing up...";
 
   try {
+    console.log("Backup step 1: fetching events from Outlook...");
     const events = await fetchCurrentOncallEvents(msToken);
-    const backup = { backed_up: new Date().toISOString(), event_count: events.length, events };
-
-    // Encode as base64 (UTF-8 safe)
+    console.log(`Backup step 2: encoding ${events.length} events...`);
+    const backup  = { backed_up: new Date().toISOString(), event_count: events.length, events };
     const json    = JSON.stringify(backup, null, 2);
     const encoded = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode(parseInt(p,16))));
 
-    // Get current SHA if file exists
+    console.log("Backup step 3: getting SHA from GitHub...");
     const existing = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json?_=${Date.now()}`,
-      { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json", "Cache-Control": "no-cache" } });
+      { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
     const sha = existing.ok ? (await existing.json()).sha : undefined;
+    console.log(`Backup step 4: writing to GitHub (SHA=${sha ? sha.slice(0,8) : "new"})...`);
 
     const resp = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json`, {
       method: "PUT",
@@ -1906,9 +1907,10 @@ async function backupCalendar(silent = false) {
     });
 
     if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.message || resp.status);
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(`GitHub write failed (${resp.status}): ${err.message || "unknown"}`);
     }
+    console.log("Backup complete!");
 
     const msg = `Backed up ${events.length} events at ${new Date().toLocaleTimeString()}`;
     document.getElementById("backup-info").textContent = msg;
