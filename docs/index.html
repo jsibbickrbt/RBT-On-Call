@@ -773,6 +773,7 @@ let config = {};
 
 function renderEmployees() {
   const tbody = document.getElementById("emp-table");
+  if (!tbody) return;
   tbody.innerHTML = "";
   (config.employees || []).forEach((emp, i) => {
     const icsUrl = `${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics`;
