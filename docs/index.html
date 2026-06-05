@@ -1063,13 +1063,13 @@ async function submitAdminLogin() {
     try {
       const token = await decryptToken(pw, stored);
       document.getElementById("gh-token").value = token;
+      sessionStorage.setItem("rbt_session_token", token);
       // Auto-decrypt MS credentials if stored
       const encRt = localStorage.getItem("rbt_enc_ms_rt");
       const encSec = localStorage.getItem("rbt_enc_ms_sec");
       if (encRt)  window._msRefreshToken  = await decryptToken(pw, encRt);
       if (encSec) window._msClientSecret  = await decryptToken(pw, encSec);
-      document.getElementById("admin-login-btn").textContent = "✅ Admin";
-      document.getElementById("admin-login-btn").classList.add("logged-in");
+      setAdminLoggedIn();
       closeAdminModal();
       setTimeout(loadBackupInfo, 500);
     } catch {
@@ -1083,9 +1083,23 @@ async function submitAdminLogin() {
     const enc = await encryptToken(pw, ghToken);
     localStorage.setItem("rbt_enc_token", enc);
     document.getElementById("gh-token").value = ghToken;
-    document.getElementById("admin-login-btn").textContent = "✅ Admin";
-    document.getElementById("admin-login-btn").classList.add("logged-in");
+    sessionStorage.setItem("rbt_session_token", ghToken);
+    setAdminLoggedIn();
     closeAdminModal();
+  }
+}
+
+function setAdminLoggedIn() {
+  document.getElementById("admin-login-btn").textContent = "✅ Admin";
+  document.getElementById("admin-login-btn").classList.add("logged-in");
+}
+
+function restoreAdminSession() {
+  const saved = sessionStorage.getItem("rbt_session_token");
+  if (saved) {
+    document.getElementById("gh-token").value = saved;
+    setAdminLoggedIn();
+    setTimeout(loadBackupInfo, 500);
   }
 }
 
@@ -1101,6 +1115,7 @@ async function saveMsCredentials(password, refreshToken, clientSecret) {
 function logoutAdmin() {
   if (!confirm("Log out of admin?")) return;
   document.getElementById("gh-token").value = "";
+  sessionStorage.removeItem("rbt_session_token");
   document.getElementById("admin-login-btn").textContent = "🔒 Admin Login";
   document.getElementById("admin-login-btn").classList.remove("logged-in");
 }
@@ -2442,6 +2457,7 @@ async function initCalendar() {
 }
 
 handleOAuthCallback();
+restoreAdminSession();
 loadConfigAndCheck();
 checkVersion();
 switchTab(localStorage.getItem("rbt_active_tab") || "calendar");
