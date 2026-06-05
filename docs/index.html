@@ -860,11 +860,12 @@ async function dirAddPerson() {
   }
   // Offer to add to on-call rotation
   const firstName = name.split(" ")[0];
-  const addToRotation = confirm(`Add ${firstName} to the on-call rotation?`);
+  const firstNameTitle = firstName.charAt(0) + firstName.slice(1).toLowerCase(); // Title case
+  const addToRotation = confirm(`Add ${firstNameTitle} to the on-call rotation?`);
   if (addToRotation) {
     if (!config.employees) config.employees = [];
     if (!config.employees.some(e => e.name.toLowerCase() === firstName.toLowerCase())) {
-      config.employees.push({ name: firstName, phone, active: true });
+      config.employees.push({ name: firstNameTitle, phone, active: true });
     }
   }
   dirHideAddForm();
