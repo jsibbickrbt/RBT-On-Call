@@ -400,6 +400,7 @@
   <div class="nav-links">
     <a href="#" id="tab-cal-link" class="active" onclick="switchTab('calendar')">&#x1F4C5; Calendar</a>
     <a href="#" id="tab-setup-link" onclick="switchTab('setup')">&#x2699; Setup</a>
+    <a href="#" id="tab-dir-link" onclick="switchTab('directory')">&#x1F4D2; Directory</a>
   </div>
 </nav>
 
@@ -629,6 +630,47 @@
 
   </div><!-- end tab-setup -->
 
+  <!-- ── DIRECTORY TAB ── -->
+  <div id="tab-directory" style="display:none;">
+    <div class="page-header">
+      <h1 class="page-title">Company Directory</h1>
+      <div class="page-actions">
+        <input type="text" id="dir-search" placeholder="Search name..." oninput="filterDirectory()" style="padding:7px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;width:200px;" />
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">&#x1F477; Field Employees</div>
+      <table id="dir-field-table" style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">#</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Name</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Phone</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Role</th>
+          </tr>
+        </thead>
+        <tbody id="dir-field-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">&#x1F3E2; Office &amp; Automation</div>
+      <table id="dir-office-table" style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">#</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Name</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Phone</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Ext.</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Role</th>
+          </tr>
+        </thead>
+        <tbody id="dir-office-body"></tbody>
+      </table>
+    </div>
+  </div><!-- end tab-directory -->
+
 </div><!-- end page -->
 
 <!-- Calendar Modal -->
@@ -656,20 +698,63 @@ const REPO     = "jsibbickrbt/RBT-On-Call-Dev";
 const BASE_URL = "https://jsibbickrbt.github.io/RBT-On-Call-Dev";
 
 function switchTab(tab) {
-  document.getElementById("tab-calendar").style.display = tab === "calendar" ? "block" : "none";
-  document.getElementById("tab-setup").style.display    = tab === "setup"    ? "block" : "none";
-  document.getElementById("tab-cal-link").classList.toggle("active",   tab === "calendar");
-  document.getElementById("tab-setup-link").classList.toggle("active", tab === "setup");
+  ["calendar","setup","directory"].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = tab === t ? "block" : "none";
+    document.getElementById(`tab-${t}-link`).classList.toggle("active", tab === t);
+  });
   document.querySelector(".save-bar").style.display = tab === "setup" ? "flex" : "none";
   localStorage.setItem("rbt_active_tab", tab);
 
-  // Refresh content on tab switch — admin session preserved, only data reloads
   if (tab === "calendar") {
-    mcalLoaded = false;
-    initCalendar();
+    mcalLoaded = false; initCalendar();
   } else if (tab === "setup") {
     loadConfig().then(() => { checkAllConflicts(); initRotationPlanner(); });
+  } else if (tab === "directory") {
+    loadDirectory();
   }
+}
+
+// ── Directory ─────────────────────────────────────────────────────────────────
+let directoryData = null;
+
+async function loadDirectory() {
+  if (directoryData) { renderDirectory(directoryData); return; }
+  try {
+    const r = await fetch(`${BASE_URL}/directory.json?cb=${Date.now()}`);
+    directoryData = await r.json();
+    renderDirectory(directoryData);
+  } catch(e) {
+    document.getElementById("dir-field-body").innerHTML  = `<tr><td colspan="4" style="padding:20px;color:#dc2626;">Failed to load directory.</td></tr>`;
+    document.getElementById("dir-office-body").innerHTML = "";
+  }
+}
+
+function renderDirectory(data, filter = "") {
+  const f = filter.toLowerCase();
+  const rowStyle = (i) => i % 2 === 0 ? "" : "background:#f9fafb;";
+
+  const field = (data.field_employees || []).filter(e => !f || e.name.toLowerCase().includes(f) || e.phone.includes(f));
+  document.getElementById("dir-field-body").innerHTML = field.map((e,i) => `
+    <tr style="${rowStyle(i)}">
+      <td style="padding:8px 12px;font-size:0.82rem;color:#9ca3af;">${i+1}</td>
+      <td style="padding:8px 12px;font-size:0.875rem;font-weight:600;">${e.name}</td>
+      <td style="padding:8px 12px;font-size:0.875rem;"><a href="tel:${e.phone}" style="color:#2d6a27;text-decoration:none;">${e.phone}</a></td>
+      <td style="padding:8px 12px;font-size:0.82rem;color:#6b7280;">${e.department}</td>
+    </tr>`).join("") || `<tr><td colspan="4" style="padding:16px;color:#9ca3af;text-align:center;">No results</td></tr>`;
+
+  const office = (data.office_employees || []).filter(e => !f || e.name.toLowerCase().includes(f) || e.phone.includes(f));
+  document.getElementById("dir-office-body").innerHTML = office.map((e,i) => `
+    <tr style="${rowStyle(i)}">
+      <td style="padding:8px 12px;font-size:0.82rem;color:#9ca3af;">${i+1}</td>
+      <td style="padding:8px 12px;font-size:0.875rem;font-weight:600;">${e.name}</td>
+      <td style="padding:8px 12px;font-size:0.875rem;"><a href="tel:${e.phone}" style="color:#2d6a27;text-decoration:none;">${e.phone}</a></td>
+      <td style="padding:8px 12px;font-size:0.875rem;color:#6b7280;">${e.ext || "—"}</td>
+      <td style="padding:8px 12px;font-size:0.82rem;color:#6b7280;">${e.department}</td>
+    </tr>`).join("") || `<tr><td colspan="5" style="padding:16px;color:#9ca3af;text-align:center;">No results</td></tr>`;
+}
+
+function filterDirectory() {
+  if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
 }
 
 let config = {};
