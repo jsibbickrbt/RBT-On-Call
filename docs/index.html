@@ -1556,7 +1556,8 @@ async function pushRotation() {
   if (!schedule || !token) { alert("Please preview first."); return; }
   if (!confirm(`Push ${schedule.length} new on-call days to Outlook?`)) return;
 
-  await backupCalendar(true);
+  const backupOkPush = await backupCalendar(true);
+  if (!backupOkPush && !confirm("⚠️ Backup failed. Continue pushing WITHOUT a backup?")) return;
   const btn = document.getElementById("rot-push-btn");
   btn.textContent = "Pushing..."; btn.disabled = true;
 
@@ -1637,7 +1638,8 @@ async function rebalanceRotation() {
 
   btn.disabled = true;
   statusEl.textContent = "Backing up before rebalance...";
-  await backupCalendar(true);
+  const backupOkReb = await backupCalendar(true);
+  if (!backupOkReb && !confirm("⚠️ Backup failed. Continue rebalancing WITHOUT a backup?")) { btn.disabled = false; return; }
 
   // Step 1 — fetch all on-call events from fromDate forward
   statusEl.textContent = "Fetching events to delete...";
@@ -2007,7 +2009,10 @@ async function clearOncallEvents() {
     return;
   }
 
-  await backupCalendar(true);
+  const backupOk = await backupCalendar(true);
+  if (!backupOk && !confirm("⚠️ Backup failed (check Outlook connection and admin login).\n\nContinue deleting WITHOUT a backup?")) {
+    btn.disabled = false; return;
+  }
   statusEl.textContent = `Deleting ${toDelete.length} events in batches...`;
   let deleted = 0, failed = 0;
   const BATCH_SIZE = 20;
