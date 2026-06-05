@@ -635,38 +635,22 @@
     <div class="page-header">
       <h1 class="page-title">Company Directory</h1>
       <div class="page-actions">
-        <input type="text" id="dir-search" placeholder="Search name..." oninput="filterDirectory()" style="padding:7px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;width:200px;" />
+        <input type="text" id="dir-search" placeholder="Search name or number..." oninput="filterDirectory()" style="padding:7px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;width:220px;" />
       </div>
     </div>
-
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-title">&#x1F477; Field Employees</div>
-      <table id="dir-field-table" style="width:100%;border-collapse:collapse;">
-        <thead>
-          <tr>
-            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">#</th>
-            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Name</th>
-            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Phone</th>
-            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Role</th>
-          </tr>
-        </thead>
-        <tbody id="dir-field-body"></tbody>
-      </table>
-    </div>
-
     <div class="card">
-      <div class="card-title">&#x1F3E2; Office &amp; Automation</div>
-      <table id="dir-office-table" style="width:100%;border-collapse:collapse;">
+      <table style="width:100%;border-collapse:collapse;">
         <thead>
           <tr>
-            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">#</th>
-            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Name</th>
-            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Phone</th>
-            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Ext.</th>
-            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:1px solid #e5e7eb;">Role</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">#</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Name</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Phone</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Ext.</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Role</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">On-Call</th>
           </tr>
         </thead>
-        <tbody id="dir-office-body"></tbody>
+        <tbody id="dir-all-body"></tbody>
       </table>
     </div>
   </div><!-- end tab-directory -->
@@ -726,33 +710,37 @@ async function loadDirectory() {
     directoryData = await r.json();
     renderDirectory(directoryData);
   } catch(e) {
-    document.getElementById("dir-field-body").innerHTML  = `<tr><td colspan="4" style="padding:20px;color:#dc2626;">Failed to load directory.</td></tr>`;
-    document.getElementById("dir-office-body").innerHTML = "";
+    document.getElementById("dir-all-body").innerHTML = `<tr><td colspan="6" style="padding:20px;color:#dc2626;">Failed to load directory.</td></tr>`;
   }
 }
 
 function renderDirectory(data, filter = "") {
   const f = filter.toLowerCase();
-  const rowStyle = (i) => i % 2 === 0 ? "" : "background:#f9fafb;";
+  // Build set of on-call rotation members (first name match)
+  const oncallNames = new Set((config.employees || []).map(e => e.name.toLowerCase()));
+  const oncallActive = new Set((config.employees || []).filter(e => e.active !== false).map(e => e.name.toLowerCase()));
 
-  const field = (data.field_employees || []).filter(e => !f || e.name.toLowerCase().includes(f) || e.phone.includes(f));
-  document.getElementById("dir-field-body").innerHTML = field.map((e,i) => `
-    <tr style="${rowStyle(i)}">
-      <td style="padding:8px 12px;font-size:0.82rem;color:#9ca3af;">${i+1}</td>
-      <td style="padding:8px 12px;font-size:0.875rem;font-weight:600;">${e.name}</td>
-      <td style="padding:8px 12px;font-size:0.875rem;"><a href="tel:${e.phone}" style="color:#2d6a27;text-decoration:none;">${e.phone}</a></td>
-      <td style="padding:8px 12px;font-size:0.82rem;color:#6b7280;">${e.department}</td>
-    </tr>`).join("") || `<tr><td colspan="4" style="padding:16px;color:#9ca3af;text-align:center;">No results</td></tr>`;
+  const all = [
+    ...(data.field_employees  || []).map(e => ({ ...e, ext: "" })),
+    ...(data.office_employees || [])
+  ].filter(e => !f || e.name.toLowerCase().includes(f) || e.phone.includes(f));
 
-  const office = (data.office_employees || []).filter(e => !f || e.name.toLowerCase().includes(f) || e.phone.includes(f));
-  document.getElementById("dir-office-body").innerHTML = office.map((e,i) => `
-    <tr style="${rowStyle(i)}">
+  document.getElementById("dir-all-body").innerHTML = all.map((e, i) => {
+    const firstName = e.name.split(" ")[0].toLowerCase();
+    const inRotation = [...oncallNames].some(n => n === firstName || n === e.name.toLowerCase());
+    const isActive   = [...oncallActive].some(n => n === firstName || n === e.name.toLowerCase());
+    const oncallBadge = inRotation
+      ? `<span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:99px;background:${isActive?"#dcfce7":"#f3f4f6"};color:${isActive?"#166534":"#9ca3af"};cursor:${isActive?"pointer":"default"}" ${isActive?`onclick="switchTab('calendar')" title="View calendar"`:""}>${isActive?"✅ Active":"⬜ Inactive"}</span>`
+      : `<span style="font-size:0.7rem;color:#d1d5db;">—</span>`;
+    return `<tr style="${i%2===1?"background:#f9fafb":""}">
       <td style="padding:8px 12px;font-size:0.82rem;color:#9ca3af;">${i+1}</td>
       <td style="padding:8px 12px;font-size:0.875rem;font-weight:600;">${e.name}</td>
       <td style="padding:8px 12px;font-size:0.875rem;"><a href="tel:${e.phone}" style="color:#2d6a27;text-decoration:none;">${e.phone}</a></td>
       <td style="padding:8px 12px;font-size:0.875rem;color:#6b7280;">${e.ext || "—"}</td>
       <td style="padding:8px 12px;font-size:0.82rem;color:#6b7280;">${e.department}</td>
-    </tr>`).join("") || `<tr><td colspan="5" style="padding:16px;color:#9ca3af;text-align:center;">No results</td></tr>`;
+      <td style="padding:8px 12px;">${oncallBadge}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6" style="padding:16px;color:#9ca3af;text-align:center;">No results</td></tr>`;
 }
 
 function filterDirectory() {
