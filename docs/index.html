@@ -1667,25 +1667,38 @@ async function rebalanceRotation() {
   }
 
   let pushed = 0, failed = 0;
-  for (let i = 0; i < toAdd.length; i++) {
-    const endDay = addDays(toAdd[i].date, rotDays);
-    const body = JSON.stringify({
-      subject:  `${toAdd[i].person} On Call`,
-      start:    { dateTime: `${toAdd[i].date}T00:00:00`, timeZone: "America/Toronto" },
-      end:      { dateTime: `${endDay}T00:00:00`, timeZone: "America/Toronto" },
-      isAllDay: true
-    });
+  statusEl.textContent = `Pushing ${toAdd.length} new days in batches...`;
+
+  for (let i = 0; i < toAdd.length; i += 4) {
+    const chunk = toAdd.slice(i, i + 4);
+    const batchBody = {
+      requests: chunk.map((s, j) => {
+        const endDay = addDays(s.date, rotDays);
+        return {
+          id: String(j + 1),
+          method: "POST",
+          url: `/me/calendars/${GRAPH_CAL_ID}/events`,
+          headers: { "Content-Type": "application/json" },
+          body: { subject: `${s.person} On Call`, start: { dateTime: `${s.date}T00:00:00`, timeZone: "America/Toronto" }, end: { dateTime: `${endDay}T00:00:00`, timeZone: "America/Toronto" }, isAllDay: true }
+        };
+      })
+    };
     try {
-      const r = await fetch(`https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/events`, {
+      const r = await fetch("https://graph.microsoft.com/v1.0/$batch", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body
+        body: JSON.stringify(batchBody)
       });
-      if (r.ok) pushed++; else failed++;
-    } catch { failed++; }
-    await new Promise(res => setTimeout(res, 100));
+      if (r.ok) {
+        const res = await r.json();
+        res.responses.forEach(resp => { if (resp.status >= 200 && resp.status < 300) pushed++; else failed++; });
+      } else { failed += chunk.length; }
+    } catch { failed += chunk.length; }
+    setProgress("rot-bar", "rot-progress", "rot-bar-label", Math.min(i + 4, toAdd.length), toAdd.length, `${pushed} ✓`);
+    await new Promise(res => setTimeout(res, 200));
   }
 
+  hideProgress("rot-progress");
   btn.disabled = false;
   const msg = `Rebalance complete!\n• ${deleted} removed (inactive employees)\n• ${pushed} new days assigned${failed ? `\n• ${failed} failed` : ""}\n• ${n} active employees${shouldShift ? " (day-shift applied)" : ""}`;
   statusEl.textContent = msg.replace(/\n/g, "  ");
