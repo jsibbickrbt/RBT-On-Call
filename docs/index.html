@@ -336,6 +336,15 @@
   .mcal-legend-item { display:flex; align-items:center; gap:5px; }
   .mcal-loading { text-align:center; padding:40px; color:#9ca3af; font-size:0.875rem; }
 
+  /* ── Progress bar ── */
+  .progress-wrap { display:none; margin-top:10px; }
+  .progress-wrap.show { display:block; }
+  .progress-bar-bg { background:#e5e7eb; border-radius:99px; height:10px; overflow:hidden; }
+  .progress-bar-fill { height:100%; border-radius:99px; transition:width 0.15s ease; width:0%; }
+  .progress-bar-fill.green  { background:#2d6a27; }
+  .progress-bar-fill.red    { background:#dc2626; }
+  .progress-label { font-size:0.78rem; color:#6b7280; margin-top:4px; text-align:right; }
+
   .rot-row-new      { background:#f0fdf4; }
   .rot-row-occupied { background:#fefce8; }
   .rot-row-skip     { background:#f9fafb; color:#9ca3af; }
@@ -530,6 +539,10 @@
       </div>
     </div>
     <div id="rot-status" style="font-size:0.85rem;margin-top:10px;"></div>
+    <div class="progress-wrap" id="rot-progress">
+      <div class="progress-bar-bg"><div class="progress-bar-fill green" id="rot-bar"></div></div>
+      <div class="progress-label" id="rot-bar-label"></div>
+    </div>
 
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;" />
 
@@ -547,6 +560,10 @@
       <button class="btn-danger-sm" id="clear-btn" onclick="clearOncallEvents()" style="padding:8px 16px;font-size:0.85rem;">&#x1F5D1; Clear Range</button>
     </div>
     <div id="clear-status" style="font-size:0.85rem;margin-top:10px;"></div>
+    <div class="progress-wrap" id="clear-progress">
+      <div class="progress-bar-bg"><div class="progress-bar-fill red" id="clear-bar"></div></div>
+      <div class="progress-label" id="clear-bar-label"></div>
+    </div>
 
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;" />
 
@@ -1364,6 +1381,22 @@ async function getGraphToken() {
   return null;
 }
 
+function setProgress(barId, wrapId, labelId, current, total, extra) {
+  const pct = total ? Math.round((current / total) * 100) : 0;
+  const wrap = document.getElementById(wrapId);
+  const bar  = document.getElementById(barId);
+  const lbl  = document.getElementById(labelId);
+  if (!wrap) return;
+  wrap.classList.add("show");
+  bar.style.width = pct + "%";
+  lbl.textContent = `${current} / ${total} (${pct}%)${extra ? "  " + extra : ""}`;
+}
+
+function hideProgress(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (wrap) setTimeout(() => wrap.classList.remove("show"), 2000);
+}
+
 // Generate rotation schedule
 function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedDates) {
   const CLEAR_AFTER = "2028-01-31";
@@ -1492,6 +1525,7 @@ async function pushRotation() {
   for (let i = 0; i < schedule.length; i++) {
     const s = schedule[i];
     const endDay = addDays(s.date, rotDays);
+    setProgress("rot-bar", "rot-progress", "rot-bar-label", i + 1, schedule.length, `${pushed} ✓ ${failed} ✗`);
     document.getElementById("rot-status").textContent = `Pushing ${i+1} of ${schedule.length}...`;
     const body = JSON.stringify({
       subject:  `${s.person} On Call`,
@@ -1507,6 +1541,7 @@ async function pushRotation() {
   }
 
   btn.textContent = "&#x2B06; Push to Outlook"; btn.disabled = false;
+  hideProgress("rot-progress");
   const pushMsg = `Done! ${pushed} of ${schedule.length} events pushed to Outlook${failed ? `, ${failed} failed` : ""}.`;
   document.getElementById("rot-status").textContent = pushMsg;
   alert(pushMsg);
@@ -1842,7 +1877,9 @@ async function clearOncallEvents() {
   statusEl.textContent = `Deleting ${toDelete.length} events...`;
   let deleted = 0, failed = 0;
 
-  for (const ev of toDelete) {
+  for (let ci = 0; ci < toDelete.length; ci++) {
+    const ev = toDelete[ci];
+    setProgress("clear-bar", "clear-progress", "clear-bar-label", ci + 1, toDelete.length, `${deleted} ✓`);
     try {
       const dr = await fetch(`https://graph.microsoft.com/v1.0/me/events/${ev.id}`, {
         method: "DELETE",
@@ -1860,6 +1897,7 @@ async function clearOncallEvents() {
     await new Promise(res => setTimeout(res, 80));
   }
 
+  hideProgress("clear-progress");
   const msg = `Done — ${deleted} of ${toDelete.length} deleted${failed ? `, ${failed} failed` : ""}.`;
   statusEl.textContent = msg;
   alert(msg);
