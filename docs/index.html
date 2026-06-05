@@ -575,13 +575,23 @@
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;" />
 
     <div style="font-size:0.875rem;font-weight:600;color:#1a2e14;margin-bottom:10px;">&#x1F4BE; Calendar Backup</div>
-    <p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">A backup is saved automatically before every push, rebalance, or clear. Restore replays all backed-up events back into Outlook.</p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">Auto-saved before every push, rebalance, or clear. Select a version to see what changed and restore if needed.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
       <button class="btn-sm green" onclick="manualBackup()">&#x1F4BE; Backup Now</button>
-      <button class="btn-sm orange" id="restore-btn" onclick="restoreCalendar()">&#x21BA; Restore Last Backup</button>
-      <span id="backup-info" style="font-size:0.8rem;color:#6b7280;"></span>
+      <button class="btn-sm blue" onclick="loadBackupHistory()">&#x1F4CB; Load History</button>
     </div>
-    <div id="backup-status" style="font-size:0.85rem;margin-top:10px;"></div>
+    <div id="backup-history-wrap" style="display:none;margin-bottom:10px;">
+      <select id="backup-version-select" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.82rem;width:100%;max-width:500px;">
+        <option value="">— Select a backup version —</option>
+      </select>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <button class="btn-sm blue" onclick="previewBackupDiff()">&#x1F50D; What Changed?</button>
+        <button class="btn-sm orange" id="restore-btn" onclick="restoreCalendar()">&#x21BA; Restore This Version</button>
+      </div>
+      <div id="backup-diff" style="margin-top:10px;font-size:0.82rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;display:none;max-height:200px;overflow-y:auto;"></div>
+    </div>
+    <div id="backup-status" style="font-size:0.85rem;margin-top:4px;"></div>
+    <div id="backup-info" style="font-size:0.78rem;color:#6b7280;margin-top:4px;"></div>
   </div>
 
     <!-- Office -->
@@ -1727,25 +1737,15 @@ async function rebalanceRotation() {
 
 // ── Calendar Backup & Restore ─────────────────────────────────────────────────
 
-async function backupCalendar(silent = false) {
-  const token    = await getGraphToken();
-  const ghToken  = document.getElementById("gh-token").value;
-  if (!token || !ghToken) return false;
-
-  const statusEl = document.getElementById("backup-status");
-  if (!silent) statusEl.textContent = "Backing up...";
-
-  // Fetch all future on-call events (7 months)
+async function fetchCurrentOncallEvents(msToken) {
   const today = new Date().toISOString().slice(0,10);
   const end   = new Date(); end.setMonth(end.getMonth()+7);
-  const endStr = end.toISOString().slice(0,10);
-
   let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
-          + `?startDateTime=${today}T00:00:00&endDateTime=${endStr}T00:00:00`
-          + `&$top=999&$select=subject,start,end,isAllDay`;
+          + `?startDateTime=${today}T00:00:00&endDateTime=${end.toISOString().slice(0,10)}T00:00:00`
+          + `&$top=999&$select=subject,start,end`;
   const events = [];
   while (url) {
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${msToken}` } });
     const d = await r.json();
     (d.value || []).forEach(e => {
       const s = (e.subject || "").toLowerCase();
@@ -1754,29 +1754,50 @@ async function backupCalendar(silent = false) {
     });
     url = d["@odata.nextLink"] || null;
   }
+  return events;
+}
 
-  const backup = { backed_up: new Date().toISOString(), event_count: events.length, events };
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(backup, null, 2))));
+async function backupCalendar(silent = false) {
+  const msToken  = await getGraphToken();
+  const ghToken  = document.getElementById("gh-token").value;
+  if (!msToken)  { if (!silent) document.getElementById("backup-status").textContent = "❌ Not connected to Outlook."; return false; }
+  if (!ghToken)  { if (!silent) document.getElementById("backup-status").textContent = "❌ Admin login required."; return false; }
 
-  // Save to GitHub repo
+  const statusEl = document.getElementById("backup-status");
+  if (!silent) statusEl.textContent = "Backing up...";
+
   try {
-    const existing = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json`, {
-      headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" }
-    });
+    const events = await fetchCurrentOncallEvents(msToken);
+    const backup = { backed_up: new Date().toISOString(), event_count: events.length, events };
+
+    // Encode as base64 (UTF-8 safe)
+    const json    = JSON.stringify(backup, null, 2);
+    const encoded = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode(parseInt(p,16))));
+
+    // Get current SHA if file exists
+    const existing = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json?_=${Date.now()}`,
+      { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json", "Cache-Control": "no-cache" } });
     const sha = existing.ok ? (await existing.json()).sha : undefined;
 
-    await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json`, {
+    const resp = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json`, {
       method: "PUT",
       headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
-      body: JSON.stringify({ message: `Calendar backup [${new Date().toISOString().slice(0,16)}]`, content, ...(sha ? { sha } : {}) })
+      body: JSON.stringify({ message: `Backup: ${events.length} events [${new Date().toISOString().slice(0,16)} UTC]`, content: encoded, ...(sha ? { sha } : {}) })
     });
 
-    const msg = `Backed up ${events.length} events (${new Date().toLocaleString()})`;
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.message || resp.status);
+    }
+
+    const msg = `Backed up ${events.length} events at ${new Date().toLocaleTimeString()}`;
     document.getElementById("backup-info").textContent = msg;
     if (!silent) statusEl.textContent = "✅ " + msg;
     return true;
   } catch(e) {
-    if (!silent) statusEl.textContent = "❌ Backup failed: " + e.message;
+    const msg = "❌ Backup failed: " + e.message;
+    if (!silent) statusEl.textContent = msg;
+    else console.error(msg);
     return false;
   }
 }
@@ -1789,69 +1810,130 @@ async function loadBackupInfo() {
   const ghToken = document.getElementById("gh-token").value;
   if (!ghToken) return;
   try {
-    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json`, {
-      headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" }
-    });
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json`,
+      { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
     if (!r.ok) return;
     const data = await r.json();
-    const backup = JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,"")))));
-    document.getElementById("backup-info").textContent =
-      `Last backup: ${new Date(backup.backed_up).toLocaleString()} — ${backup.event_count} events`;
+    const backup = JSON.parse(decodeURIComponent(Array.from(atob(data.content.replace(/\n/g,""))).map(c=>('%'+('00'+c.charCodeAt(0).toString(16)).slice(-2))).join('')));
+    document.getElementById("backup-info").textContent = `Latest: ${new Date(backup.backed_up).toLocaleString()} — ${backup.event_count} events`;
   } catch {}
 }
 
-async function restoreCalendar() {
+async function loadBackupHistory() {
   const ghToken = document.getElementById("gh-token").value;
-  if (!ghToken) { alert("Please log in as Admin first."); return; }
-  const token = await getGraphToken();
-  if (!token) return;
-
-  // Load backup from GitHub
+  if (!ghToken) { alert("Admin login required."); return; }
   const statusEl = document.getElementById("backup-status");
-  statusEl.textContent = "Loading backup...";
+  statusEl.textContent = "Loading backup history...";
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/commits?path=docs/calendar_backup.json&per_page=20`,
+      { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
+    if (!r.ok) { statusEl.textContent = "❌ Could not load history."; return; }
+    const commits = await r.json();
+    const sel = document.getElementById("backup-version-select");
+    sel.innerHTML = '<option value="">— Select a backup version —</option>';
+    commits.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.sha;
+      opt.textContent = `${new Date(c.commit.author.date).toLocaleString()} — ${c.commit.message.replace("Backup: ","")}`;
+      sel.appendChild(opt);
+    });
+    document.getElementById("backup-history-wrap").style.display = "block";
+    document.getElementById("backup-diff").style.display = "none";
+    statusEl.textContent = `${commits.length} backup versions found.`;
+  } catch(e) { statusEl.textContent = "❌ " + e.message; }
+}
+
+async function getBackupAtCommit(sha, ghToken) {
+  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json?ref=${sha}`,
+    { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
+  if (!r.ok) throw new Error("Could not load backup version");
+  const data = await r.json();
+  return JSON.parse(decodeURIComponent(Array.from(atob(data.content.replace(/\n/g,""))).map(c=>('%'+('00'+c.charCodeAt(0).toString(16)).slice(-2))).join('')));
+}
+
+async function previewBackupDiff() {
+  const sha = document.getElementById("backup-version-select").value;
+  if (!sha) { alert("Please select a backup version."); return; }
+  const ghToken = document.getElementById("gh-token").value;
+  const msToken = await getGraphToken();
+  const diffEl  = document.getElementById("backup-diff");
+  const statusEl = document.getElementById("backup-status");
+  statusEl.textContent = "Comparing backup to current calendar...";
+
+  try {
+    const [backup, current] = await Promise.all([
+      getBackupAtCommit(sha, ghToken),
+      msToken ? fetchCurrentOncallEvents(msToken) : []
+    ]);
+
+    const backupDates = new Map(backup.events.map(e => [e.start, e.subject]));
+    const currentDates = new Map(current.map(e => [e.start, e.subject]));
+
+    const added   = [...currentDates.entries()].filter(([d]) => !backupDates.has(d));
+    const removed = [...backupDates.entries()].filter(([d]) => !currentDates.has(d));
+    const changed = [...backupDates.entries()].filter(([d, s]) => currentDates.has(d) && currentDates.get(d) !== s);
+
+    let html = `<strong>Comparing backup (${new Date(backup.backed_up).toLocaleString()}) to current calendar:</strong><br><br>`;
+    if (!added.length && !removed.length && !changed.length) {
+      html += "✅ No differences — calendar matches this backup.";
+    } else {
+      if (removed.length) html += `<span style="color:#dc2626">➖ ${removed.length} events in backup but missing from calendar:</span><br>` + removed.map(([d,s])=>`&nbsp;&nbsp;${d} — ${s}`).join("<br>") + "<br><br>";
+      if (added.length)   html += `<span style="color:#2d6a27">➕ ${added.length} events in calendar not in backup:</span><br>` + added.map(([d,s])=>`&nbsp;&nbsp;${d} — ${s}`).join("<br>") + "<br><br>";
+      if (changed.length) html += `<span style="color:#d97706">✏️ ${changed.length} events with different assignments:</span><br>` + changed.map(([d,s])=>`&nbsp;&nbsp;${d}: was "${s}", now "${currentDates.get(d)}"`).join("<br>");
+    }
+
+    diffEl.innerHTML = html;
+    diffEl.style.display = "block";
+    statusEl.textContent = `${removed.length} missing, ${added.length} added, ${changed.length} changed since this backup.`;
+  } catch(e) { statusEl.textContent = "❌ " + e.message; }
+}
+
+async function restoreCalendar() {
+  const sha     = document.getElementById("backup-version-select").value;
+  const ghToken = document.getElementById("gh-token").value;
+  const msToken = await getGraphToken();
+  if (!ghToken) { alert("Admin login required."); return; }
+  if (!msToken) return;
+
+  const statusEl = document.getElementById("backup-status");
+  statusEl.textContent = "Loading backup version...";
 
   let backup;
   try {
-    const r = await fetch(`${BASE_URL}/calendar_backup.json?cb=${Date.now()}`);
-    backup = await r.json();
-  } catch(e) { statusEl.textContent = "❌ No backup found."; return; }
+    backup = sha ? await getBackupAtCommit(sha, ghToken)
+                 : await (await fetch(`${BASE_URL}/calendar_backup.json?cb=${Date.now()}`)).json();
+  } catch(e) { statusEl.textContent = "❌ Could not load backup."; return; }
 
-  if (!confirm(`Restore ${backup.event_count} events from backup taken ${new Date(backup.backed_up).toLocaleString()}?\n\nThis will re-create any deleted events. Existing events are not affected.`)) return;
+  if (!confirm(`Restore from backup:\n${new Date(backup.backed_up).toLocaleString()}\n${backup.event_count} events\n\nMissing events will be recreated. Existing events are NOT deleted.`)) return;
 
   const btn = document.getElementById("restore-btn");
   btn.disabled = true;
-  statusEl.textContent = `Restoring ${backup.event_count} events...`;
 
-  // Get existing occupied dates to avoid duplicates
-  const today = new Date().toISOString().slice(0,10);
-  const end = new Date(); end.setMonth(end.getMonth()+7);
-  let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
-          + `?startDateTime=${today}T00:00:00&endDateTime=${end.toISOString().slice(0,10)}T00:00:00`
-          + `&$top=999&$select=subject,start`;
-  const existing = new Set();
-  while (url) {
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const d = await r.json();
-    (d.value || []).forEach(e => {
-      const s = (e.subject||"").toLowerCase();
-      if ((s.includes("on call")||s.includes("oncall"))&&!s.includes("vacation"))
-        existing.add((e.start.date||e.start.dateTime.slice(0,10)));
-    });
-    url = d["@odata.nextLink"] || null;
-  }
+  // Get existing dates to avoid duplicates
+  const current = await fetchCurrentOncallEvents(msToken);
+  const existing = new Set(current.map(e => e.start));
 
   let restored = 0, skipped = 0, failed = 0;
-  for (const ev of backup.events) {
-    if (existing.has(ev.start)) { skipped++; continue; }
+  const toRestore = backup.events.filter(e => !existing.has(e.start));
+  skipped = backup.events.length - toRestore.length;
+  statusEl.textContent = `Restoring ${toRestore.length} missing events...`;
+
+  for (let i = 0; i < toRestore.length; i += 4) {
+    const chunk = toRestore.slice(i, i + 4);
+    const batchBody = { requests: chunk.map((e, j) => ({
+      id: String(j+1), method: "POST", url: `/me/calendars/${GRAPH_CAL_ID}/events`,
+      headers: { "Content-Type": "application/json" },
+      body: { subject: e.subject, start: { dateTime: `${e.start}T00:00:00`, timeZone: "America/Toronto" }, end: { dateTime: `${e.end}T00:00:00`, timeZone: "America/Toronto" }, isAllDay: true }
+    }))};
     try {
-      const r = await fetch(`https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/events`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ subject: ev.subject, start: { dateTime: `${ev.start}T00:00:00`, timeZone: "America/Toronto" }, end: { dateTime: `${ev.end}T00:00:00`, timeZone: "America/Toronto" }, isAllDay: true })
+      const r = await fetch("https://graph.microsoft.com/v1.0/$batch", {
+        method: "POST", headers: { Authorization: `Bearer ${msToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify(batchBody)
       });
-      if (r.ok) restored++; else failed++;
-    } catch { failed++; }
-    await new Promise(r => setTimeout(r, 80));
+      if (r.ok) { const res = await r.json(); res.responses.forEach(resp => { if (resp.status < 300) restored++; else failed++; }); }
+      else failed += chunk.length;
+    } catch { failed += chunk.length; }
+    await new Promise(r => setTimeout(r, 200));
   }
 
   btn.disabled = false;
