@@ -1275,7 +1275,9 @@ async function loadConfigAndCheck() {
 
 const MS_CLIENT_ID  = "619ba349-9370-4f9d-a40a-832f3d43918b";
 const MS_TENANT_ID  = "c6742b62-ae1e-422e-8ade-06070424f6b6";
-const GRAPH_CAL_ID  = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAJS1sEHAAA=";
+const GRAPH_CAL_ID      = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAJS1sEHAAA=";
+// For calendar VIEW — always read from the master production calendar (has vacations + on-call)
+const GRAPH_VIEW_CAL_ID = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAAHInXdAAA=";
 let graphAccessToken = null;
 
 function initRotationPlanner() {
@@ -2106,7 +2108,7 @@ async function loadAllIcsForCalendar() {
     // Use Graph API — full directory, accurate data, no ICS dependency
     const start = new Date(mcalYear, mcalMonth - 1, 1).toISOString().slice(0,10);
     const end   = new Date(mcalYear, mcalMonth + 2, 1).toISOString().slice(0,10);
-    let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+    let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_VIEW_CAL_ID}/calendarView`
             + `?startDateTime=${start}T00:00:00&endDateTime=${end}T00:00:00`
             + `&$top=999&$select=subject,start,end`;
     const allEvs = [];
@@ -2127,7 +2129,13 @@ async function loadAllIcsForCalendar() {
       const skip = new Set(["on","call","oncall","vacation","-","–"]);
       const name = subj.split(/[\s\-–]+/).find(w => w.length > 1 && !skip.has(w.toLowerCase())) || subj.split(" ")[0];
       const dtstart = (ev.start.date || ev.start.dateTime.slice(0,10)).replace(/-/g,"");
-      const dtend   = (ev.end.date   || ev.end.dateTime.slice(0,10)).replace(/-/g,"");
+      let dtend     = (ev.end.date   || ev.end.dateTime.slice(0,10)).replace(/-/g,"");
+      // If same day or no end, treat as 1-day event
+      if (!dtend || dtend <= dtstart) {
+        const dt = new Date(dtstart.slice(0,4)+"-"+dtstart.slice(4,6)+"-"+dtstart.slice(6,8)+"T12:00:00");
+        dt.setDate(dt.getDate()+1);
+        dtend = dt.toISOString().slice(0,10).replace(/-/g,"");
+      }
       let d = dtstart;
       while (d < dtend) {
         if (!mcalEvents[d]) mcalEvents[d] = [];
