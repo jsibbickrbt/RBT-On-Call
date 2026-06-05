@@ -654,6 +654,14 @@ function switchTab(tab) {
   document.getElementById("tab-setup-link").classList.toggle("active", tab === "setup");
   document.querySelector(".save-bar").style.display = tab === "setup" ? "flex" : "none";
   localStorage.setItem("rbt_active_tab", tab);
+
+  // Refresh content on tab switch — admin session preserved, only data reloads
+  if (tab === "calendar") {
+    mcalLoaded = false;
+    initCalendar();
+  } else if (tab === "setup") {
+    loadConfig().then(() => { checkAllConflicts(); initRotationPlanner(); });
+  }
 }
 
 let config = {};
