@@ -835,17 +835,14 @@ function removeEmployee(i) {
 }
 
 function collectConfig() {
-  const employees = (config.employees || []).map((_, i) => ({
-    name:   document.getElementById(`emp-name-${i}`).value.trim(),
-    phone:  document.getElementById(`emp-phone-${i}`).value.trim(),
-    active: document.getElementById(`emp-active-${i}`).checked,
-  }));
+  // Employees are managed via directory toggles — use in-memory config directly
+  const employees = (config.employees || []);
   return {
     ...config,
     employees,
     office: {
-      phone:  document.getElementById("office-phone").value.trim(),
-      active: document.getElementById("office-active").checked,
+      phone:  document.getElementById("office-phone")?.value.trim()  || config.office?.phone  || "",
+      active: document.getElementById("office-active")?.checked      ?? config.office?.active ?? false,
     }
   };
 }
