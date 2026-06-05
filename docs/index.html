@@ -697,10 +697,12 @@
 const REPO     = "jsibbickrbt/RBT-On-Call-Dev";
 const BASE_URL = "https://jsibbickrbt.github.io/RBT-On-Call-Dev";
 
+const TAB_LINK_IDS = { calendar: "tab-cal-link", setup: "tab-setup-link", directory: "tab-dir-link" };
+
 function switchTab(tab) {
   ["calendar","setup","directory"].forEach(t => {
     document.getElementById(`tab-${t}`).style.display = tab === t ? "block" : "none";
-    document.getElementById(`tab-${t}-link`).classList.toggle("active", tab === t);
+    document.getElementById(TAB_LINK_IDS[t]).classList.toggle("active", tab === t);
   });
   document.querySelector(".save-bar").style.display = tab === "setup" ? "flex" : "none";
   localStorage.setItem("rbt_active_tab", tab);
