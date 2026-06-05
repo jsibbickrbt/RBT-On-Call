@@ -846,22 +846,47 @@ async function saveDirectory() {
   }
 }
 
-function dirToggleActive(firstName, active) {
-  const idx = (config.employees || []).findIndex(e => e.name.toLowerCase() === firstName.toLowerCase());
-  if (idx >= 0) {
-    config.employees[idx].active = active;
-    document.getElementById("dir-save-notice").style.display = "block";
-    if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
-  }
+async function saveConfigSilent() {
+  const ghToken = document.getElementById("gh-token").value;
+  if (!ghToken) return false;
+  try {
+    const newConfig = collectConfig();
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(newConfig, null, 2))));
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json?_=${Date.now()}`,
+      { cache:"no-store", headers:{ Authorization:`token ${ghToken}`, Accept:"application/vnd.github+json" } });
+    const data = await r.json();
+    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json`, {
+      method:"PUT",
+      headers:{ Authorization:`token ${ghToken}`, Accept:"application/vnd.github+json", "Content-Type":"application/json" },
+      body: JSON.stringify({ message:"Update on-call config", content, sha: data.sha })
+    });
+    if (res.ok) { config = newConfig; return true; }
+    return false;
+  } catch { return false; }
 }
 
-function dirAddToRotation(fullName, phone) {
+async function dirToggleActive(firstName, active) {
+  const idx = (config.employees || []).findIndex(e => e.name.toLowerCase() === firstName.toLowerCase());
+  if (idx < 0) return;
+  config.employees[idx].active = active;
+  if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
+  const notice = document.getElementById("dir-save-notice");
+  notice.textContent = "Saving..."; notice.style.display = "block"; notice.style.background = "#f0fdf4"; notice.style.color = "#166534"; notice.style.borderColor = "#bbf7d0";
+  const ok = await saveConfigSilent();
+  if (ok) { notice.textContent = "✅ Saved!"; setTimeout(() => { notice.style.display = "none"; notice.textContent = "⚠️ You have unsaved changes — click Save Changes to apply."; notice.style.background = ""; notice.style.color = ""; notice.style.borderColor = ""; }, 2000); }
+  else { notice.style.background = "#fef2f2"; notice.style.color = "#dc2626"; notice.style.borderColor = "#fecaca"; notice.textContent = "❌ Save failed — click Save Changes to retry."; }
+}
+
+async function dirAddToRotation(fullName, phone) {
   const firstName = fullName.split(" ")[0];
   if ((config.employees || []).some(e => e.name.toLowerCase() === firstName.toLowerCase())) return;
   if (!config.employees) config.employees = [];
-  config.employees.push({ name: firstName, phone: phone, active: true });
-  document.getElementById("dir-save-notice").style.display = "block";
+  config.employees.push({ name: firstName, phone, active: true });
   if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
+  const notice = document.getElementById("dir-save-notice");
+  notice.textContent = "Saving..."; notice.style.display = "block";
+  const ok = await saveConfigSilent();
+  notice.style.display = ok ? "none" : "block";
 }
 
 let config = {};
