@@ -770,12 +770,32 @@ function renderDirectory(data, filter = "") {
         <button class="btn-sm blue" style="font-size:0.7rem;padding:3px 8px;" onclick="viewCalendar('${firstName}')">&#x1F4C6; View</button>
       </div>`;
 
+    const sec    = e._section;
+    const roles  = sec === "field" ? ["ELECTRICIAN","APPRENTICE","GENERAL LABORER","FOREMAN"] : ["OFFICE","AUTOMATION","PROJECT MANAGER","ESTIMATOR"];
+    const roleOpts = roles.map(r => `<option${r===e.department?" selected":""}>${r}</option>`).join("");
     return insertSep + `<tr style="${i%2===1?"background:#f9fafb":""}">
       <td style="padding:8px 12px;font-size:0.82rem;color:#9ca3af;">${i+1}</td>
-      <td style="padding:8px 12px;font-size:0.875rem;font-weight:600;">${e.name}</td>
-      <td style="padding:8px 12px;font-size:0.875rem;"><a href="tel:${e.phone}" style="color:#2d6a27;text-decoration:none;">${e.phone}</a></td>
-      <td style="padding:8px 12px;font-size:0.875rem;color:#6b7280;">${e.ext || "—"}</td>
-      <td style="padding:8px 12px;font-size:0.82rem;color:#6b7280;">${e.department}</td>
+      <td style="padding:6px 12px;">
+        <input value="${e.name}" onchange="dirEditField('${e.name}','name',this.value,'${sec}')"
+          style="font-size:0.875rem;font-weight:600;border:1px solid transparent;border-radius:5px;padding:3px 6px;width:100%;min-width:130px;background:transparent;"
+          onfocus="this.style.borderColor='#2d6a27';this.style.background='white'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'" />
+      </td>
+      <td style="padding:6px 12px;">
+        <input value="${e.phone}" onchange="dirEditField('${e.name}','phone',this.value,'${sec}')"
+          style="font-size:0.875rem;color:#2d6a27;border:1px solid transparent;border-radius:5px;padding:3px 6px;width:100%;min-width:110px;background:transparent;"
+          onfocus="this.style.borderColor='#2d6a27';this.style.background='white'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'" />
+      </td>
+      <td style="padding:6px 12px;font-size:0.875rem;color:#6b7280;">${e.ext || "—"}</td>
+      <td style="padding:6px 12px;">
+        <select onchange="dirEditField('${e.name}','department',this.value,'${sec}')"
+          style="font-size:0.78rem;border:1px solid transparent;border-radius:5px;padding:3px 6px;background:transparent;color:#6b7280;cursor:pointer;"
+          onfocus="this.style.borderColor='#2d6a27';this.style.background='white'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'">
+          ${roleOpts}
+        </select>
+      </td>
       <td style="padding:8px 12px;">${oncallBadge}</td>
       <td style="padding:6px 12px;">${calLinks}</td>
       <td style="padding:6px 12px;"><button class="btn-danger-sm" onclick="dirDeletePerson('${e.name}')" title="Remove from directory">✕</button></td>
@@ -785,6 +805,25 @@ function renderDirectory(data, filter = "") {
 
 function filterDirectory() {
   if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
+}
+
+async function dirEditField(oldName, field, value, section) {
+  const list = section === "field" ? directoryData.field_employees : directoryData.office_employees;
+  const idx  = list.findIndex(e => e.name === oldName);
+  if (idx < 0) return;
+  list[idx][field] = field === "name" ? value.toUpperCase() : value;
+  // If name changed, update on-call config too
+  if (field === "name") {
+    const oldFirst = oldName.split(" ")[0];
+    const newFirst = value.split(" ")[0];
+    const empIdx = (config.employees || []).findIndex(e => e.name.toLowerCase() === oldFirst.toLowerCase());
+    if (empIdx >= 0) config.employees[empIdx].name = newFirst.charAt(0).toUpperCase() + newFirst.slice(1).toLowerCase();
+  }
+  const notice = document.getElementById("dir-add-status");
+  notice.textContent = "Saving...";
+  const ok = await saveConfigSilent();
+  await saveDirectory();
+  notice.textContent = ok ? "" : "❌ Failed to save config";
 }
 
 function dirUpdateRoles() {
