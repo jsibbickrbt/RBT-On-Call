@@ -1878,8 +1878,8 @@ async function fetchCurrentOncallEvents(msToken) {
 async function backupCalendar(silent = false) {
   const msToken  = await getGraphToken();
   const ghToken  = document.getElementById("gh-token").value;
-  if (!msToken)  { if (!silent) document.getElementById("backup-status").textContent = "❌ Not connected to Outlook."; return false; }
-  if (!ghToken)  { if (!silent) document.getElementById("backup-status").textContent = "❌ Admin login required."; return false; }
+  if (!msToken)  { document.getElementById("backup-status").textContent = "❌ Backup failed: Not connected to Outlook."; return false; }
+  if (!ghToken)  { document.getElementById("backup-status").textContent = "❌ Backup failed: Admin login required."; return false; }
 
   const statusEl = document.getElementById("backup-status");
   if (!silent) statusEl.textContent = "Backing up...";
@@ -1914,8 +1914,8 @@ async function backupCalendar(silent = false) {
     return true;
   } catch(e) {
     const msg = "❌ Backup failed: " + e.message;
-    if (!silent) statusEl.textContent = msg;
-    else console.error(msg);
+    console.error("Backup error:", e);
+    document.getElementById("backup-status").textContent = msg;
     return false;
   }
 }
