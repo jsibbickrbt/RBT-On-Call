@@ -846,7 +846,7 @@ function dirHideAddForm() {
   ["dir-new-name","dir-new-phone","dir-new-dept","dir-new-ext"].forEach(id => document.getElementById(id).value = "");
 }
 
-function dirAddPerson() {
+async function dirAddPerson() {
   const name  = document.getElementById("dir-new-name").value.trim().toUpperCase();
   const phone = document.getElementById("dir-new-phone").value.trim();
   const dept  = document.getElementById("dir-new-dept").value.trim().toUpperCase();
@@ -871,13 +871,15 @@ function dirAddPerson() {
   renderDirectory(directoryData, document.getElementById("dir-search").value);
 
   const notice = document.getElementById("dir-add-status");
-  notice.textContent = "Saving...";
-  // Save both directory and config (if added to rotation)
-  Promise.all([saveDirectory(), addToRotation ? saveConfigSilent() : Promise.resolve(true)])
-    .then(([, ok]) => {
-      notice.textContent = ok ? "✅ Saved!" : "❌ Config save failed — click Save Changes";
-      setTimeout(() => notice.textContent = "", 3000);
-    });
+  notice.textContent = "Saving directory...";
+  await saveDirectory();
+
+  if (addToRotation) {
+    notice.textContent = "Saving on-call config...";
+    await saveConfig();
+  }
+  notice.textContent = "✅ Saved!";
+  setTimeout(() => notice.textContent = "", 3000);
 }
 
 function dirDeletePerson(fullName) {
