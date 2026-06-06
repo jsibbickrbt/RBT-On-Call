@@ -412,21 +412,53 @@
 
   <!-- Admin Modal -->
   <div class="admin-modal-overlay" id="admin-modal-overlay">
-    <div class="admin-modal">
+    <div class="admin-modal" style="max-width:440px;">
       <h2 id="admin-modal-title">Admin Login</h2>
-      <p id="admin-modal-desc">Enter your admin password to unlock management features.</p>
-      <input type="password" id="admin-password" placeholder="Password" onkeydown="if(event.key==='Enter')submitAdminLogin()" />
-      <div id="admin-token-row" style="display:none;">
-        <input type="password" id="admin-token-input" placeholder="GitHub Token (ghp_...)" />
+      <p id="admin-modal-desc" style="font-size:0.82rem;color:#6b7280;margin-bottom:16px;"></p>
+
+      <!-- Step 1: Username + Password -->
+      <div id="auth-step-1">
+        <input type="text" id="admin-username" placeholder="Username" autocomplete="username"
+          style="margin-bottom:10px;" onkeydown="if(event.key==='Enter')document.getElementById('admin-password').focus()" />
+        <input type="password" id="admin-password" placeholder="Password" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')submitStep1()" />
       </div>
-      <div class="admin-error" id="admin-error"></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+
+      <!-- Step 2: TOTP code -->
+      <div id="auth-step-2" style="display:none;">
+        <p style="font-size:0.82rem;color:#6b7280;margin-bottom:8px;">Enter the 6-digit code from your Authenticator app.</p>
+        <input type="text" id="admin-totp" placeholder="000000" maxlength="6" inputmode="numeric"
+          style="letter-spacing:0.3em;font-size:1.2rem;text-align:center;"
+          onkeydown="if(event.key==='Enter')submitStep2()" oninput="this.value=this.value.replace(/\D/,'')" />
+      </div>
+
+      <!-- Step 3: First-time setup -->
+      <div id="auth-step-3" style="display:none;">
+        <p style="font-size:0.82rem;color:#374151;margin-bottom:12px;">
+          <strong>First-time setup.</strong> Enter your GitHub token, then scan the QR code with Google Authenticator or Authy.
+        </p>
+        <input type="password" id="admin-token-input" placeholder="GitHub Token (ghp_...)" style="margin-bottom:10px;" />
+        <div id="totp-qr-wrap" style="text-align:center;margin:14px 0;display:none;">
+          <img id="totp-qr-img" src="" style="width:180px;height:180px;border:4px solid #e5e7eb;border-radius:8px;" />
+          <div style="font-size:0.75rem;color:#6b7280;margin-top:6px;">Scan with Authenticator app</div>
+          <div id="totp-secret-display" style="font-size:0.72rem;font-family:monospace;color:#374151;margin-top:4px;word-break:break-all;"></div>
+        </div>
+        <input type="text" id="admin-totp-setup" placeholder="Enter 6-digit code to confirm" maxlength="6"
+          inputmode="numeric" style="letter-spacing:0.2em;text-align:center;"
+          oninput="this.value=this.value.replace(/\D/,'')"
+          onkeydown="if(event.key==='Enter')submitStep3()" />
+      </div>
+
+      <div class="admin-error" id="admin-error" style="margin-top:8px;"></div>
+
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0;">
         <input type="checkbox" id="admin-remember" style="width:16px;height:16px;cursor:pointer;" />
         <label for="admin-remember" style="font-size:0.82rem;color:#374151;cursor:pointer;">Remember me on this device</label>
       </div>
+
       <div class="admin-modal-btns">
         <button class="btn-sm gray" onclick="closeAdminModal()">Cancel</button>
-        <button class="btn-sm green" onclick="submitAdminLogin()">Login</button>
+        <button class="btn-sm green" id="admin-submit-btn" onclick="submitAdminLogin()">Continue</button>
       </div>
     </div>
   </div>
@@ -1151,7 +1183,7 @@ async function saveConfig() {
   }
 }
 
-// Admin Login — token encrypted with password using AES-GCM, stored in localStorage
+// ── Crypto helpers ─────────────────────────────────────────────────────────────
 async function deriveKey(password) {
   const enc = new TextEncoder();
   const keyMat = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
@@ -1160,79 +1192,228 @@ async function deriveKey(password) {
     keyMat, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]
   );
 }
-
 async function encryptToken(password, token) {
   const key = await deriveKey(password);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const enc = new TextEncoder();
-  const ct = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, key, enc.encode(token));
+  const iv  = crypto.getRandomValues(new Uint8Array(12));
+  const ct  = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, key, new TextEncoder().encode(token));
   const buf = new Uint8Array(iv.byteLength + ct.byteLength);
   buf.set(iv, 0); buf.set(new Uint8Array(ct), iv.byteLength);
   return btoa(String.fromCharCode(...buf));
 }
-
 async function decryptToken(password, data) {
   const key = await deriveKey(password);
   const raw = Uint8Array.from(atob(data), c => c.charCodeAt(0));
-  const iv = raw.slice(0,12), ct = raw.slice(12);
-  const dec = await crypto.subtle.decrypt({ name:"AES-GCM", iv }, key, ct);
+  const dec = await crypto.subtle.decrypt({ name:"AES-GCM", iv: raw.slice(0,12) }, key, raw.slice(12));
   return new TextDecoder().decode(dec);
+}
+async function sha256hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+// ── TOTP ───────────────────────────────────────────────────────────────────────
+function base32decode(str) {
+  const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0, val = 0;
+  const out = [];
+  for (const c of str.toUpperCase().replace(/=+$/,"")) {
+    val = (val << 5) | alpha.indexOf(c);
+    bits += 5;
+    if (bits >= 8) { out.push((val >>> (bits-8)) & 255); bits -= 8; }
+  }
+  return new Uint8Array(out);
+}
+function base32encode(bytes) {
+  const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0, val = 0, out = "";
+  for (const b of bytes) { val = (val << 8) | b; bits += 8; while (bits >= 5) { out += alpha[(val >>> (bits-5)) & 31]; bits -= 5; } }
+  return out;
+}
+async function totpCode(secret, offset = 0) {
+  const key  = await crypto.subtle.importKey("raw", base32decode(secret), {name:"HMAC",hash:"SHA-1"}, false, ["sign"]);
+  const time = Math.floor((Date.now()/1000 + offset*30) / 30);
+  const msg  = new Uint8Array(8);
+  for (let i=7; i>=0; i--) { msg[i] = time & 0xff; time >> 8; }
+  // manually write time as big-endian
+  const t = Math.floor(Date.now()/1000/30) + offset;
+  const tb = new DataView(new ArrayBuffer(8));
+  tb.setUint32(4, t >>> 0);
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, tb.buffer));
+  const off = sig[19] & 0xf;
+  const code = ((sig[off]&0x7f)<<24|(sig[off+1]&0xff)<<16|(sig[off+2]&0xff)<<8|(sig[off+3]&0xff)) % 1000000;
+  return String(code).padStart(6,"0");
+}
+async function verifyTOTP(secret, code) {
+  for (const offset of [0,-1,1]) {
+    if (await totpCode(secret, offset) === code) return true;
+  }
+  return false;
+}
+function generateTOTPSecret() {
+  return base32encode(crypto.getRandomValues(new Uint8Array(20)));
+}
+
+// ── Auth state ─────────────────────────────────────────────────────────────────
+let _authPw = "", _authUser = "";
+
+function showAuthError(msg) {
+  const el = document.getElementById("admin-error");
+  el.textContent = msg; el.style.display = "block";
+}
+function clearAuthError() {
+  const el = document.getElementById("admin-error");
+  el.textContent = ""; el.style.display = "none";
+}
+function showStep(n) {
+  [1,2,3].forEach(i => document.getElementById(`auth-step-${i}`).style.display = i===n?"block":"none");
+  document.getElementById("admin-submit-btn").textContent = n===3?"Finish Setup":"Continue";
 }
 
 function openAdminModal() {
   if (document.getElementById("gh-token").value) { logoutAdmin(); return; }
-  const hasStored = !!localStorage.getItem("rbt_enc_token");
+  clearAuthError();
+  _authPw = ""; _authUser = "";
+  document.getElementById("admin-username").value = "";
   document.getElementById("admin-password").value = "";
-  document.getElementById("admin-error").style.display = "none";
+  document.getElementById("admin-totp").value = "";
+  document.getElementById("admin-totp-setup").value = "";
   document.getElementById("admin-modal-title").textContent = "Admin Login";
-  document.getElementById("admin-modal-desc").textContent = hasStored
-    ? "Enter your admin password to unlock management features."
-    : "First time setup: enter a password and your GitHub token to get started.";
-  const tokenRow = document.getElementById("admin-token-row");
-  if (tokenRow) tokenRow.style.display = hasStored ? "none" : "block";
+  document.getElementById("admin-modal-desc").textContent = localStorage.getItem("rbt_enc_token")
+    ? "Sign in to unlock management features."
+    : "Create your admin account to get started.";
+  showStep(1);
   document.getElementById("admin-modal-overlay").classList.add("open");
-  setTimeout(() => document.getElementById("admin-password").focus(), 100);
+  setTimeout(() => document.getElementById("admin-username").focus(), 100);
 }
-
 function closeAdminModal() {
   document.getElementById("admin-modal-overlay").classList.remove("open");
 }
 
-async function submitAdminLogin() {
-  const pw = document.getElementById("admin-password").value;
-  if (!pw) { document.getElementById("admin-error").textContent = "Please enter a password."; document.getElementById("admin-error").style.display = "block"; return; }
-  const stored = localStorage.getItem("rbt_enc_token");
-  if (stored) {
-    try {
-      const token = await decryptToken(pw, stored);
-      document.getElementById("gh-token").value = token;
-      sessionStorage.setItem("rbt_session_token", token);
-      if (document.getElementById("admin-remember")?.checked) {
-        localStorage.setItem("rbt_remember_token", token);
-      }
-      // Auto-decrypt MS credentials if stored
-      const encRt = localStorage.getItem("rbt_enc_ms_rt");
-      const encSec = localStorage.getItem("rbt_enc_ms_sec");
-      if (encRt)  window._msRefreshToken  = await decryptToken(pw, encRt);
-      if (encSec) window._msClientSecret  = await decryptToken(pw, encSec);
-      setAdminLoggedIn();
-      closeAdminModal();
-      setTimeout(loadBackupInfo, 500);
-    } catch {
-      document.getElementById("admin-error").textContent = "Incorrect password.";
-      document.getElementById("admin-error").style.display = "block";
-    }
-  } else {
-    const tokenInput = document.getElementById("admin-token-input");
-    const ghToken = tokenInput ? tokenInput.value.trim() : "";
-    if (!ghToken) { document.getElementById("admin-error").textContent = "Please enter your GitHub token."; document.getElementById("admin-error").style.display = "block"; return; }
-    const enc = await encryptToken(pw, ghToken);
-    localStorage.setItem("rbt_enc_token", enc);
-    document.getElementById("gh-token").value = ghToken;
-    sessionStorage.setItem("rbt_session_token", ghToken);
-    setAdminLoggedIn();
-    closeAdminModal();
+// Called by the Continue/Finish button — routes to correct step handler
+function submitAdminLogin() {
+  const step2 = document.getElementById("auth-step-2");
+  const step3 = document.getElementById("auth-step-3");
+  if (step3.style.display !== "none") { submitStep3(); return; }
+  if (step2.style.display !== "none") { submitStep2(); return; }
+  submitStep1();
+}
+
+async function submitStep1() {
+  clearAuthError();
+  const user = document.getElementById("admin-username").value.trim();
+  const pw   = document.getElementById("admin-password").value;
+  if (!user) { showAuthError("Please enter a username."); return; }
+  if (!pw)   { showAuthError("Please enter a password."); return; }
+
+  const storedUser = localStorage.getItem("rbt_username_hash");
+  const storedToken = localStorage.getItem("rbt_enc_token");
+
+  if (!storedToken) {
+    // First-time setup
+    _authUser = user; _authPw = pw;
+    document.getElementById("admin-modal-title").textContent = "Setup 2FA";
+    const secret = generateTOTPSecret();
+    window._setupTotpSecret = secret;
+    const uri = `otpauth://totp/RBT%20On-Call:${encodeURIComponent(user)}?secret=${secret}&issuer=RBT`;
+    document.getElementById("totp-qr-img").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(uri)}&size=180x180&margin=10`;
+    document.getElementById("totp-qr-wrap").style.display = "block";
+    document.getElementById("totp-secret-display").textContent = `Manual key: ${secret}`;
+    showStep(3);
+    setTimeout(() => document.getElementById("admin-totp-setup").focus(), 100);
+    return;
   }
+
+  // Verify username
+  const userHash = await sha256hex(user.toLowerCase());
+  if (storedUser && storedUser !== userHash) { showAuthError("Incorrect username or password."); return; }
+
+  // Verify password (try decrypting token)
+  try {
+    await decryptToken(pw, storedToken);
+  } catch {
+    showAuthError("Incorrect username or password.");
+    return;
+  }
+
+  _authUser = user; _authPw = pw;
+
+  // Check if TOTP is set up
+  const encTotp = localStorage.getItem("rbt_enc_totp");
+  if (!encTotp) {
+    // No TOTP yet — go to 2FA setup
+    document.getElementById("admin-modal-title").textContent = "Setup 2FA";
+    const secret = generateTOTPSecret();
+    window._setupTotpSecret = secret;
+    const uri = `otpauth://totp/RBT%20On-Call:${encodeURIComponent(user)}?secret=${secret}&issuer=RBT`;
+    document.getElementById("totp-qr-img").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(uri)}&size=180x180&margin=10`;
+    document.getElementById("totp-qr-wrap").style.display = "block";
+    document.getElementById("totp-secret-display").textContent = `Manual key: ${secret}`;
+    document.getElementById("admin-token-input").style.display = "none";
+    document.getElementById("admin-modal-desc").textContent = "Scan this QR code with Google Authenticator or Authy, then enter the 6-digit code.";
+    showStep(3);
+    setTimeout(() => document.getElementById("admin-totp-setup").focus(), 100);
+    return;
+  }
+
+  // Go to TOTP entry
+  document.getElementById("admin-modal-title").textContent = "Enter 2FA Code";
+  document.getElementById("admin-modal-desc").textContent = "";
+  showStep(2);
+  setTimeout(() => document.getElementById("admin-totp").focus(), 100);
+}
+
+async function submitStep2() {
+  clearAuthError();
+  const code = document.getElementById("admin-totp").value.trim();
+  if (code.length !== 6) { showAuthError("Enter the 6-digit code."); return; }
+  try {
+    const secret = await decryptToken(_authPw, localStorage.getItem("rbt_enc_totp"));
+    if (!await verifyTOTP(secret, code)) { showAuthError("Invalid code — try again."); return; }
+  } catch { showAuthError("2FA verification failed."); return; }
+  await finishLogin();
+}
+
+async function submitStep3() {
+  clearAuthError();
+  const code = document.getElementById("admin-totp-setup").value.trim();
+  if (code.length !== 6) { showAuthError("Enter the 6-digit code to confirm."); return; }
+  const secret = window._setupTotpSecret;
+  if (!await verifyTOTP(secret, code)) { showAuthError("Code didn't match — make sure you scanned the QR code."); return; }
+
+  // Save username hash
+  localStorage.setItem("rbt_username_hash", await sha256hex(_authUser.toLowerCase()));
+
+  // If first-time: also save GitHub token
+  const ghTokenInput = document.getElementById("admin-token-input");
+  if (ghTokenInput && ghTokenInput.style.display !== "none" && ghTokenInput.value.trim()) {
+    const enc = await encryptToken(_authPw, ghTokenInput.value.trim());
+    localStorage.setItem("rbt_enc_token", enc);
+  }
+
+  // Save TOTP secret encrypted with password
+  const encTotp = await encryptToken(_authPw, secret);
+  localStorage.setItem("rbt_enc_totp", encTotp);
+
+  await finishLogin();
+}
+
+async function finishLogin() {
+  const storedToken = localStorage.getItem("rbt_enc_token");
+  const ghToken = await decryptToken(_authPw, storedToken);
+  document.getElementById("gh-token").value = ghToken;
+  sessionStorage.setItem("rbt_session_token", ghToken);
+  if (document.getElementById("admin-remember")?.checked) {
+    localStorage.setItem("rbt_remember_token", ghToken);
+  }
+  // Auto-decrypt MS credentials
+  const encRt  = localStorage.getItem("rbt_enc_ms_rt");
+  const encSec = localStorage.getItem("rbt_enc_ms_sec");
+  if (encRt)  window._msRefreshToken = await decryptToken(_authPw, encRt).catch(()=>"");
+  if (encSec) window._msClientSecret = await decryptToken(_authPw, encSec).catch(()=>"");
+  setAdminLoggedIn();
+  closeAdminModal();
+  setTimeout(loadBackupInfo, 500);
+  _authPw = ""; _authUser = "";
 }
 
 function setAdminLoggedIn() {
@@ -1264,6 +1445,7 @@ function logoutAdmin() {
   document.getElementById("gh-token").value = "";
   sessionStorage.removeItem("rbt_session_token");
   localStorage.removeItem("rbt_remember_token");
+  _authPw = ""; _authUser = "";
   document.getElementById("admin-login-btn").textContent = "🔒 Admin Login";
   document.getElementById("admin-login-btn").classList.remove("logged-in");
 }
