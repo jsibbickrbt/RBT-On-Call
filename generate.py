@@ -392,6 +392,98 @@ def get_all_names():
     return sorted(names)
 
 
+def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
+    """
+    Ensures exactly 12 months of on-call events exist from today.
+    Fetches existing events, finds the last date covered, then fills
+    any gap between the last event and (today + 12 months).
+    """
+    today    = date.today()
+    end_date = today + timedelta(days=365)
+
+    # Fetch all existing on-call events in the window
+    start_str = today.strftime("%Y-%m-%dT00:00:00")
+    end_str   = end_date.strftime("%Y-%m-%dT00:00:00")
+    url = (f"https://graph.microsoft.com/v1.0/me/calendars/{cal_id}/calendarView"
+           f"?startDateTime={start_str}&endDateTime={end_str}"
+           f"&$top=999&$select=subject,start")
+    existing_events = []
+    while url:
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
+        with urllib.request.urlopen(req) as r:
+            data = json.loads(r.read())
+        for ev in data.get("value", []):
+            s = ev.get("subject", "").lower()
+            if ("on call" in s or "oncall" in s) and "vacation" not in s:
+                dt = ev["start"].get("date") or ev["start"].get("dateTime", "")[:10]
+                existing_events.append(dt)
+        url = data.get("@odata.nextLink")
+
+    if not existing_events:
+        last_covered = today - timedelta(days=1)
+    else:
+        last_covered = datetime.strptime(max(existing_events), "%Y-%m-%d").date()
+
+    if last_covered >= end_date - timedelta(days=1):
+        print(f"  Calendar already covered through {last_covered} — no top-up needed")
+        return
+
+    # Find who was last on call to continue pattern
+    fill_start = last_covered + timedelta(days=rotation_days)
+    existing_events.sort()
+    last_person_idx = 0
+    n = len(active_employees)
+    if existing_events:
+        # Find person on last covered date to determine next in rotation
+        last_date = max(existing_events)
+        for i, emp in enumerate(active_employees):
+            if emp["name"].lower() in last_date:  # rough match
+                last_person_idx = (i + 1) % n
+                break
+
+    print(f"  Topping up on-call from {fill_start} to {end_date} ({(end_date - fill_start).days} days)...")
+
+    occupied = set(existing_events)
+    events_to_create = []
+    current = fill_start
+    idx = last_person_idx
+    while current <= end_date:
+        date_str = current.strftime("%Y-%m-%d")
+        if date_str not in occupied:
+            emp  = active_employees[idx % n]
+            end_d = (current + timedelta(days=rotation_days)).strftime("%Y-%m-%d")
+            events_to_create.append({
+                "subject":  f"{emp['name']} On Call",
+                "start":    {"dateTime": f"{date_str}T00:00:00", "timeZone": "America/Toronto"},
+                "end":      {"dateTime": f"{end_d}T00:00:00",   "timeZone": "America/Toronto"},
+                "isAllDay": True
+            })
+        idx += 1
+        current += timedelta(days=rotation_days)
+
+    # Push in batches of 4
+    pushed = 0
+    for i in range(0, len(events_to_create), 4):
+        batch = events_to_create[i:i+4]
+        body = json.dumps({"requests": [
+            {"id": str(j+1), "method": "POST",
+             "url": f"/me/calendars/{cal_id}/events",
+             "headers": {"Content-Type": "application/json"},
+             "body": ev}
+            for j, ev in enumerate(batch)
+        ]}).encode()
+        req = urllib.request.Request(
+            "https://graph.microsoft.com/v1.0/$batch",
+            data=body,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Accept": "application/json"}
+        )
+        with urllib.request.urlopen(req) as r:
+            result = json.loads(r.read())
+        pushed += sum(1 for resp in result.get("responses", []) if resp.get("status", 0) < 300)
+
+    print(f"  Top-up complete: {pushed} events created")
+
+
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -425,6 +517,17 @@ def main():
         vacation_count = len([e for e in events if is_vacation(e, name)])
         override_count = len([e for e in events if "RECURRENCE-ID" in e and (is_oncall(e, name) or is_vacation(e, name))])
         print(f"  {name}: {oncall_count} on-call src events, {vacation_count} vacation, {override_count} overrides -> {filename}")
+
+    # Daily top-up: ensure 12 months of on-call always exists in the calendar
+    if use_graph:
+        cal_id = os.environ.get("GRAPH_CAL_ID", GRAPH_CALENDAR_ID)
+        active_emps = [e for e in CONFIG.get("employees", []) if e.get("active", True)]
+        if active_emps:
+            print("\nChecking 12-month on-call coverage...")
+            try:
+                topup_oncall_calendar(token, cal_id, active_emps)
+            except Exception as e:
+                print(f"  Top-up failed (non-fatal): {e}")
 
 
 if __name__ == "__main__":

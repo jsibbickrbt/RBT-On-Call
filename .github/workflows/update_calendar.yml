@@ -36,6 +36,7 @@ jobs:
           MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
           MS_TENANT_ID:     ${{ secrets.MS_TENANT_ID }}
           MS_REFRESH_TOKEN: ${{ secrets.MS_REFRESH_TOKEN }}
+          GRAPH_CAL_ID:     ${{ secrets.GRAPH_CAL_ID }}
         run: python generate.py
 
       - name: Write version file

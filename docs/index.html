@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -11,7 +11,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a1a; }
 
-  /* ── Nav ── */
+  /* â”€â”€ Nav â”€â”€ */
   nav {
     background: #1a2e14;
     color: white;
@@ -47,7 +47,7 @@
   .nav-links a:hover { color: white; background: rgba(255,255,255,0.1); }
   .nav-links a.active { color: white; background: rgba(255,255,255,0.15); }
 
-  /* ── Page ── */
+  /* â”€â”€ Page â”€â”€ */
   .page { max-width: 960px; margin: 0 auto; padding: 32px 24px 100px; }
 
   .page-header {
@@ -62,7 +62,7 @@
 
   .page-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
-  /* ── Buttons ── */
+  /* â”€â”€ Buttons â”€â”€ */
   .btn-outline {
     background: white;
     color: #1a2e14;
@@ -124,7 +124,7 @@
   .btn-sm.sent   { background:#d1fae5; color:#065f46; border-color:#6ee7b7; }
   .btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* ── Cards ── */
+  /* â”€â”€ Cards â”€â”€ */
   .card {
     background: white;
     border-radius: 12px;
@@ -141,7 +141,7 @@
     border-bottom: 1px solid #f0f2f5;
   }
 
-  /* ── Admin Login ── */
+  /* â”€â”€ Admin Login â”€â”€ */
   .admin-login-btn {
     display: inline-flex; align-items: center; gap: 7px;
     background: #1a2e14; color: white; border: none;
@@ -170,7 +170,7 @@
   .admin-modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
   .admin-error { font-size: 0.8rem; color: #dc2626; margin-bottom: 8px; display: none; }
 
-  /* ── Table ── */
+  /* â”€â”€ Table â”€â”€ */
   table { width: 100%; border-collapse: collapse; }
   th {
     text-align: left;
@@ -197,7 +197,7 @@
   }
   input[type=text]:focus, input[type=password]:focus { border-color: #2d6a27; box-shadow: 0 0 0 2px rgba(45,106,39,0.1); }
 
-  /* ── Toggle ── */
+  /* â”€â”€ Toggle â”€â”€ */
   .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
   .toggle input { opacity: 0; width: 0; height: 0; }
   .slider { position: absolute; cursor: pointer; inset: 0; background: #d1d5db; border-radius: 22px; transition: .25s; }
@@ -205,7 +205,7 @@
   input:checked + .slider { background: #2d6a27; }
   input:checked + .slider:before { transform: translateX(18px); }
 
-  /* ── Add employee btn ── */
+  /* â”€â”€ Add employee btn â”€â”€ */
   .btn-add-emp {
     display: block;
     width: 100%;
@@ -222,7 +222,7 @@
   }
   .btn-add-emp:hover { background: #f0fdf4; border-color: #86efac; color: #166534; }
 
-  /* ── ICS row ── */
+  /* â”€â”€ ICS row â”€â”€ */
   .ics-row td { background: #f9fafb; padding: 8px 12px 10px; }
   .ics-box { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .ics-box label { font-size: 0.75rem; color: #6b7280; white-space: nowrap; }
@@ -238,12 +238,12 @@
     padding: 5px 8px;
   }
 
-  /* ── Office section ── */
+  /* â”€â”€ Office section â”€â”€ */
   .office-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   .office-row .field { flex: 1; min-width: 200px; }
   .office-row label.field-label { font-size: 0.8rem; color: #6b7280; display: block; margin-bottom: 4px; }
 
-  /* ── Status bar ── */
+  /* â”€â”€ Status bar â”€â”€ */
   .save-bar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
@@ -260,7 +260,7 @@
   .status-msg.ok  { color: #059669; }
   .status-msg.err { color: #dc2626; }
 
-  /* ── Modal ── */
+  /* â”€â”€ Modal â”€â”€ */
   .modal-overlay {
     display: none;
     position: fixed; inset: 0;
@@ -312,11 +312,11 @@
   .holiday-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; background:#fef3c7; color:#92400e; border:1px solid #fde68a; padding:2px 8px; border-radius:99px; font-weight:600; cursor:pointer; white-space:nowrap; transition:background 0.15s; }
   .holiday-badge:hover { background:#fde68a; }
 
-  /* ── Update banner ── */
+  /* â”€â”€ Update banner â”€â”€ */
   .update-banner { display:none; background:#1a2e14; color:white; padding:10px 20px; border-radius:10px; margin-bottom:16px; font-size:0.85rem; display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .update-banner button { background:white; color:#1a2e14; border:none; padding:4px 12px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer; }
 
-  /* ── Month calendar ── */
+  /* â”€â”€ Month calendar â”€â”€ */
   .mcal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .mcal-title { font-size:1rem; font-weight:700; color:#1a2e14; }
   .mcal-nav-btn { background:none; border:1px solid #d1d5db; border-radius:7px; padding:4px 12px; cursor:pointer; font-size:1rem; color:#374151; }
@@ -336,7 +336,7 @@
   .mcal-legend-item { display:flex; align-items:center; gap:5px; }
   .mcal-loading { text-align:center; padding:40px; color:#9ca3af; font-size:0.875rem; }
 
-  /* ── Progress bar ── */
+  /* â”€â”€ Progress bar â”€â”€ */
   .progress-wrap { display:none; margin-top:10px; }
   .progress-wrap.show { display:block; }
   .progress-bar-bg { background:#e5e7eb; border-radius:99px; height:10px; overflow:hidden; }
@@ -364,7 +364,7 @@
   }
   .modal-loading { text-align:center; padding:40px; color:#9ca3af; }
 
-  /* ── Info box ── */
+  /* â”€â”€ Info box â”€â”€ */
   .info-box {
     background: #f0fdf4;
     border: 1px solid #bbf7d0;
@@ -379,7 +379,7 @@
 
 <!-- Dev banner -->
 <div style="background:#b45309;color:white;text-align:center;padding:6px;font-size:0.82rem;font-weight:700;letter-spacing:0.05em;">
-  &#x26A0; DEVELOPMENT ENVIRONMENT — Changes here do not affect production
+  &#x26A0; DEVELOPMENT ENVIRONMENT â€” Changes here do not affect production
 </div>
 
 <!-- Nav -->
@@ -410,7 +410,7 @@
   <!-- Admin Login -->
   <input type="hidden" id="gh-token" />
   <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
-    <button class="admin-login-btn" id="admin-login-btn" onclick="openAdminModal()">🔒 Admin Login</button>
+    <button class="admin-login-btn" id="admin-login-btn" onclick="openAdminModal()">ðŸ”’ Admin Login</button>
   </div>
 
   <!-- Admin Modal -->
@@ -439,7 +439,7 @@
     </div>
   </div>
 
-  <!-- ── CALENDAR TAB ── -->
+  <!-- â”€â”€ CALENDAR TAB â”€â”€ -->
   <div id="tab-calendar">
     <div class="page-header">
       <h1 class="page-title">Team Calendar</h1>
@@ -461,7 +461,7 @@
     </div>
   </div>
 
-  <!-- ── SETUP TAB ── -->
+  <!-- â”€â”€ SETUP TAB â”€â”€ -->
   <div id="tab-setup" style="display:none;">
     <div class="page-header">
       <h1 class="page-title">Setup</h1>
@@ -498,7 +498,7 @@
       </div>
       <div class="field">
         <label class="field-label">Active employees</label>
-        <div id="rot-emp-count" style="padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:7px;font-size:0.875rem;color:#374151;min-width:60px;text-align:center;">—</div>
+        <div id="rot-emp-count" style="padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:7px;font-size:0.875rem;color:#374151;min-width:60px;text-align:center;">â€”</div>
       </div>
       <button class="btn-sm blue" onclick="previewRotation()">&#x1F441; Preview</button>
       <button class="btn-sm green" id="rot-push-btn" onclick="pushRotation()" style="display:none;">&#x2B06; Push to Outlook</button>
@@ -567,7 +567,7 @@
     </div>
     <div id="backup-history-wrap" style="display:none;margin-bottom:10px;">
       <select id="backup-version-select" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.82rem;width:100%;max-width:500px;">
-        <option value="">— Select a backup version —</option>
+        <option value="">â€” Select a backup version â€”</option>
       </select>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
         <button class="btn-sm blue" onclick="previewBackupDiff()">&#x1F50D; What Changed?</button>
@@ -585,7 +585,7 @@
 
     <!-- Office -->
     <div class="card">
-    <div class="card-title">🏢 Office Notification</div>
+    <div class="card-title">ðŸ¢ Office Notification</div>
     <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">Receives a daily text listing everyone on call.</p>
     <div class="office-row">
       <div class="field">
@@ -600,17 +600,17 @@
         <span style="font-size:0.85rem;color:#374151;">Active</span>
       </div>
       <div style="padding-top:20px;">
-        <button class="btn-sm orange" id="office-test-btn" onclick="sendOfficeTest()">💬 Test Text</button>
+        <button class="btn-sm orange" id="office-test-btn" onclick="sendOfficeTest()">ðŸ’¬ Test Text</button>
       </div>
       <div style="padding-top:20px;">
-        <button class="btn-sm" id="conflict-btn" onclick="checkConflicts()" style="background:#fefce8;color:#854d0e;border-color:#fde047;">⚠️ Check Conflicts</button>
+        <button class="btn-sm" id="conflict-btn" onclick="checkConflicts()" style="background:#fefce8;color:#854d0e;border-color:#fde047;">âš ï¸ Check Conflicts</button>
       </div>
     </div>
     </div><!-- end Office card -->
 
   </div><!-- end tab-setup -->
 
-  <!-- ── DIRECTORY TAB ── -->
+  <!-- â”€â”€ DIRECTORY TAB â”€â”€ -->
   <div id="tab-directory" style="display:none;margin-left:calc(-50vw + 50%);margin-right:calc(-50vw + 50%);padding:0 24px;">
     <div class="page-header">
       <h1 class="page-title">Company Directory</h1>
@@ -620,7 +620,7 @@
       </div>
     </div>
     <div id="dir-save-notice" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:10px 16px;margin-bottom:12px;font-size:0.85rem;color:#854d0e;">
-      &#x26A0; You have unsaved changes — click <strong>Save Changes</strong> to apply.
+      &#x26A0; You have unsaved changes â€” click <strong>Save Changes</strong> to apply.
     </div>
     <div class="card">
       <table style="width:100%;border-collapse:collapse;">
@@ -678,10 +678,10 @@
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-title">Schedule</h3>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button class="modal-close" onclick="closeModal()">âœ•</button>
     </div>
     <div class="modal-body" id="modal-body">
-      <div class="modal-loading">Loading…</div>
+      <div class="modal-loading">Loadingâ€¦</div>
     </div>
   </div>
 </div>
@@ -689,7 +689,7 @@
 <!-- Save bar -->
 <div class="save-bar">
   <span class="status-msg" id="save-status"></span>
-  <button class="btn-outline" id="refresh-btn2" onclick="refreshCalendars()">🔄 Refresh Calendars</button>
+  <button class="btn-outline" id="refresh-btn2" onclick="refreshCalendars()">ðŸ”„ Refresh Calendars</button>
   <button class="btn-solid"   onclick="saveConfig()">Save Changes</button>
 </div>
 
@@ -716,7 +716,7 @@ function switchTab(tab) {
   }
 }
 
-// ── Directory ─────────────────────────────────────────────────────────────────
+// â”€â”€ Directory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let directoryData = null;
 
 async function loadDirectory() {
@@ -760,7 +760,7 @@ function renderDirectory(data, filter = "") {
          </label>`
       : `<button class="btn-sm green" style="font-size:0.7rem;padding:3px 10px;" onclick="dirAddToRotation('${e.name}','${e.phone}')">+ Add</button>`;
 
-    // Calendar links for everyone — ICS is generated for all directory employees
+    // Calendar links for everyone â€” ICS is generated for all directory employees
     const calLinks = `
       <div style="display:flex;gap:4px;flex-wrap:wrap;">
         <button class="btn-sm gray" style="font-size:0.7rem;padding:3px 8px;" onclick="navigator.clipboard.writeText('${icsUrl}')">&#x1F4CB; Copy</button>
@@ -787,7 +787,7 @@ function renderDirectory(data, filter = "") {
           onfocus="this.style.borderColor='#2d6a27';this.style.background='white'"
           onblur="this.style.borderColor='transparent';this.style.background='transparent'" />
       </td>
-      <td style="padding:6px 12px;font-size:0.875rem;color:#6b7280;">${e.ext || "—"}</td>
+      <td style="padding:6px 12px;font-size:0.875rem;color:#6b7280;">${e.ext || "â€”"}</td>
       <td style="padding:6px 12px;">
         <select onchange="dirEditField('${e.name}','department',this.value,'${sec}')"
           style="font-size:0.78rem;border:1px solid transparent;border-radius:5px;padding:3px 6px;background:transparent;color:#6b7280;cursor:pointer;"
@@ -798,7 +798,7 @@ function renderDirectory(data, filter = "") {
       </td>
       <td style="padding:8px 12px;">${oncallBadge}</td>
       <td style="padding:6px 12px;">${calLinks}</td>
-      <td style="padding:6px 12px;"><button class="btn-danger-sm" onclick="dirDeletePerson('${e.name}')" title="Remove from directory">✕</button></td>
+      <td style="padding:6px 12px;"><button class="btn-danger-sm" onclick="dirDeletePerson('${e.name}')" title="Remove from directory">âœ•</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="7" style="padding:16px;color:#9ca3af;text-align:center;">No results</td></tr>`;
 }
@@ -823,7 +823,7 @@ async function dirEditField(oldName, field, value, section) {
   notice.textContent = "Saving...";
   const ok = await saveConfigSilent();
   await saveDirectory();
-  notice.textContent = ok ? "" : "❌ Failed to save config";
+  notice.textContent = ok ? "" : "âŒ Failed to save config";
 }
 
 function dirUpdateRoles() {
@@ -879,7 +879,7 @@ async function dirAddPerson() {
     notice.textContent = "Saving on-call config...";
     await saveConfig();
   }
-  notice.textContent = "✅ Saved!";
+  notice.textContent = "âœ… Saved!";
   setTimeout(() => notice.textContent = "", 3000);
 }
 
@@ -893,7 +893,7 @@ function dirDeletePerson(fullName) {
 
 async function saveDirectory() {
   const ghToken = document.getElementById("gh-token").value;
-  if (!ghToken) { document.getElementById("dir-add-status").textContent = "❌ Admin login required to save."; return; }
+  if (!ghToken) { document.getElementById("dir-add-status").textContent = "âŒ Admin login required to save."; return; }
   document.getElementById("dir-add-status").textContent = "Saving...";
   try {
     const r = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/directory.json`,
@@ -905,10 +905,10 @@ async function saveDirectory() {
       headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
       body: JSON.stringify({ message: "Update directory", content, sha: existing.sha })
     });
-    document.getElementById("dir-add-status").textContent = resp.ok ? "✅ Directory saved!" : "❌ Save failed";
+    document.getElementById("dir-add-status").textContent = resp.ok ? "âœ… Directory saved!" : "âŒ Save failed";
     setTimeout(() => document.getElementById("dir-add-status").textContent = "", 3000);
   } catch(e) {
-    document.getElementById("dir-add-status").textContent = "❌ " + e.message;
+    document.getElementById("dir-add-status").textContent = "âŒ " + e.message;
   }
 }
 
@@ -940,8 +940,8 @@ async function dirToggleActive(firstName, active) {
   const notice = document.getElementById("dir-save-notice");
   notice.textContent = "Saving..."; notice.style.display = "block"; notice.style.background = "#f0fdf4"; notice.style.color = "#166534"; notice.style.borderColor = "#bbf7d0";
   const ok = await saveConfigSilent();
-  if (ok) { notice.textContent = "✅ Saved!"; setTimeout(() => { notice.style.display = "none"; notice.textContent = "⚠️ You have unsaved changes — click Save Changes to apply."; notice.style.background = ""; notice.style.color = ""; notice.style.borderColor = ""; }, 2000); }
-  else { notice.style.background = "#fef2f2"; notice.style.color = "#dc2626"; notice.style.borderColor = "#fecaca"; notice.textContent = "❌ Save failed — click Save Changes to retry."; }
+  if (ok) { notice.textContent = "âœ… Saved!"; setTimeout(() => { notice.style.display = "none"; notice.textContent = "âš ï¸ You have unsaved changes â€” click Save Changes to apply."; notice.style.background = ""; notice.style.color = ""; notice.style.borderColor = ""; }, 2000); }
+  else { notice.style.background = "#fef2f2"; notice.style.color = "#dc2626"; notice.style.borderColor = "#fecaca"; notice.textContent = "âŒ Save failed â€” click Save Changes to retry."; }
 }
 
 async function dirAddToRotation(fullName, phone) {
@@ -983,7 +983,7 @@ function renderEmployees() {
           </label>
         </td>
         <td>
-          <button class="btn-danger-sm" onclick="removeEmployee(${i})">✕ Remove</button>
+          <button class="btn-danger-sm" onclick="removeEmployee(${i})">âœ• Remove</button>
         </td>
       </tr>
       <tr class="ics-row" id="ics-row-${i}">
@@ -992,9 +992,9 @@ function renderEmployees() {
             <input type="hidden" id="ics-url-${i}" value="${icsUrl}" />
             <button class="btn-sm gray"   onclick="copyIcs(${i})" id="copy-btn-${i}">&#x1F4CB; Copy ICS</button>
             <a class="btn-sm blue" id="ics-open-${i}" href="${webcal}" style="text-decoration:none;">&#x1F4F2; Subscribe</a>
-            <button class="btn-sm orange" id="test-btn-${i}" onclick="sendTestText(${i}, '${emp.name}')">💬 Test</button>
-            <button class="btn-sm green"  id="cal-btn-${i}"  onclick="sendCalendarLink(${i}, '${emp.name}')">📅 Send Link</button>
-            <button class="btn-sm blue"   onclick="viewCalendar('${emp.name}')">📆 View</button>
+            <button class="btn-sm orange" id="test-btn-${i}" onclick="sendTestText(${i}, '${emp.name}')">ðŸ’¬ Test</button>
+            <button class="btn-sm green"  id="cal-btn-${i}"  onclick="sendCalendarLink(${i}, '${emp.name}')">ðŸ“… Send Link</button>
+            <button class="btn-sm blue"   onclick="viewCalendar('${emp.name}')">ðŸ“† View</button>
           </div>
         </td>
       </tr>`;
@@ -1022,7 +1022,7 @@ function removeEmployee(i) {
 }
 
 function collectConfig() {
-  // Employees are managed via directory toggles — use in-memory config directly
+  // Employees are managed via directory toggles â€” use in-memory config directly
   const employees = (config.employees || []);
   return {
     ...config,
@@ -1045,7 +1045,7 @@ async function refreshCalendars() {
   if (!token) { alert("Please enter your GitHub token first."); return; }
   ["refresh-btn","refresh-btn2"].forEach(id => {
     const b = document.getElementById(id);
-    if (b) { b.textContent = "⏳ Refreshing…"; b.disabled = true; }
+    if (b) { b.textContent = "â³ Refreshingâ€¦"; b.disabled = true; }
   });
   setStatus("");
   try {
@@ -1054,7 +1054,7 @@ async function refreshCalendars() {
       { method:"POST", headers:{"Authorization":`Bearer ${token}`,"Content-Type":"application/json","Accept":"application/vnd.github+json"}, body:JSON.stringify({ref:"main",inputs:{}}) }
     );
     if (resp.status === 204) {
-      setStatus("✅ Calendar refresh triggered — updating in ~2 min", "ok");
+      setStatus("âœ… Calendar refresh triggered â€” updating in ~2 min", "ok");
     } else {
       const err = await resp.json().catch(() => ({}));
       throw new Error(err.message || `HTTP ${resp.status}`);
@@ -1062,16 +1062,16 @@ async function refreshCalendars() {
   } catch(e) {
     ["refresh-btn","refresh-btn2"].forEach(id => {
       const b = document.getElementById(id);
-      if (b) { b.textContent = "🔄 Refresh Calendars"; b.disabled = false; }
+      if (b) { b.textContent = "ðŸ”„ Refresh Calendars"; b.disabled = false; }
     });
-    setStatus("❌ " + e.message, "err");
+    setStatus("âŒ " + e.message, "err");
   }
 }
 
 async function saveConfig() {
   const token = document.getElementById("gh-token").value.trim();
   if (!token) { alert("Please enter your GitHub token first."); return; }
-  setStatus("Saving…");
+  setStatus("Savingâ€¦");
   const newConfig = collectConfig();
   const content   = btoa(unescape(encodeURIComponent(JSON.stringify(newConfig, null, 2))));
   try {
@@ -1084,7 +1084,7 @@ async function saveConfig() {
     });
     if (res.ok) {
       config = newConfig;
-      setStatus("✅ Saved!", "ok");
+      setStatus("âœ… Saved!", "ok");
       document.getElementById("dir-save-notice").style.display = "none";
       renderEmployees();
       renderOffice();
@@ -1093,14 +1093,14 @@ async function saveConfig() {
       checkAllConflicts();
     } else {
       const err = await res.json();
-      setStatus("❌ " + (err.message || "Unknown error"), "err");
+      setStatus("âŒ " + (err.message || "Unknown error"), "err");
     }
   } catch(e) {
-    setStatus("❌ " + e.message, "err");
+    setStatus("âŒ " + e.message, "err");
   }
 }
 
-// Admin Login — token encrypted with password using AES-GCM, stored in localStorage
+// Admin Login â€” token encrypted with password using AES-GCM, stored in localStorage
 async function deriveKey(password) {
   const enc = new TextEncoder();
   const keyMat = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
@@ -1182,7 +1182,7 @@ async function submitAdminLogin() {
 }
 
 function setAdminLoggedIn() {
-  document.getElementById("admin-login-btn").textContent = "✅ Admin";
+  document.getElementById("admin-login-btn").textContent = "âœ… Admin";
   document.getElementById("admin-login-btn").classList.add("logged-in");
 }
 
@@ -1208,7 +1208,7 @@ function logoutAdmin() {
   if (!confirm("Log out of admin?")) return;
   document.getElementById("gh-token").value = "";
   sessionStorage.removeItem("rbt_session_token");
-  document.getElementById("admin-login-btn").textContent = "🔒 Admin Login";
+  document.getElementById("admin-login-btn").textContent = "ðŸ”’ Admin Login";
   document.getElementById("admin-login-btn").classList.remove("logged-in");
 }
 
@@ -1232,21 +1232,21 @@ async function sendTestText(i, name) {
   const token = document.getElementById("gh-token").value.trim();
   if (!token) { alert("Please enter your GitHub token first."); return; }
   const btn = document.getElementById(`test-btn-${i}`);
-  btn.textContent = "Sending…"; btn.disabled = true;
+  btn.textContent = "Sendingâ€¦"; btn.disabled = true;
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
       method:"POST", headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json","Content-Type":"application/json"},
       body:JSON.stringify({ref:"main",inputs:{test_user:name}})
     });
     if (res.ok || res.status===204) {
-      btn.textContent="✅ Sent!"; btn.classList.add("sent");
-      setTimeout(()=>{ btn.textContent="💬 Test"; btn.classList.remove("sent"); btn.disabled=false; },4000);
+      btn.textContent="âœ… Sent!"; btn.classList.add("sent");
+      setTimeout(()=>{ btn.textContent="ðŸ’¬ Test"; btn.classList.remove("sent"); btn.disabled=false; },4000);
     } else {
       const err = await res.json();
       alert("Error: "+(err.message||res.status));
-      btn.textContent="💬 Test"; btn.disabled=false;
+      btn.textContent="ðŸ’¬ Test"; btn.disabled=false;
     }
-  } catch(e) { alert("Error: "+e.message); btn.textContent="💬 Test"; btn.disabled=false; }
+  } catch(e) { alert("Error: "+e.message); btn.textContent="ðŸ’¬ Test"; btn.disabled=false; }
 }
 
 async function sendCalendarLink(i, name) {
@@ -1254,40 +1254,40 @@ async function sendCalendarLink(i, name) {
   if (!token) { alert("Please enter your GitHub token first."); return; }
   if (!confirm(`Send calendar link to ${name} via SMS?`)) return;
   const btn = document.getElementById(`cal-btn-${i}`);
-  btn.textContent="Sending…"; btn.disabled=true;
+  btn.textContent="Sendingâ€¦"; btn.disabled=true;
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
       method:"POST", headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json","Content-Type":"application/json"},
       body:JSON.stringify({ref:"main",inputs:{test_user:"",send_calendar:name}})
     });
     if (res.ok||res.status===204) {
-      btn.textContent="✅ Sent!"; btn.classList.add("sent");
-      setTimeout(()=>{ btn.textContent="📅 Send Link"; btn.classList.remove("sent"); btn.disabled=false; },4000);
+      btn.textContent="âœ… Sent!"; btn.classList.add("sent");
+      setTimeout(()=>{ btn.textContent="ðŸ“… Send Link"; btn.classList.remove("sent"); btn.disabled=false; },4000);
     } else {
       const err=await res.json(); alert("Error: "+(err.message||res.status));
-      btn.textContent="📅 Send Link"; btn.disabled=false;
+      btn.textContent="ðŸ“… Send Link"; btn.disabled=false;
     }
-  } catch(e) { alert("Error: "+e.message); btn.textContent="📅 Send Link"; btn.disabled=false; }
+  } catch(e) { alert("Error: "+e.message); btn.textContent="ðŸ“… Send Link"; btn.disabled=false; }
 }
 
 async function sendOfficeTest() {
   const token = document.getElementById("gh-token").value.trim();
   if (!token) { alert("Please enter your GitHub token first."); return; }
   const btn = document.getElementById("office-test-btn");
-  btn.textContent="Sending…"; btn.disabled=true;
+  btn.textContent="Sendingâ€¦"; btn.disabled=true;
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
       method:"POST", headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json","Content-Type":"application/json"},
       body:JSON.stringify({ref:"main",inputs:{test_user:"office"}})
     });
     if (res.ok||res.status===204) {
-      btn.textContent="✅ Sent!"; btn.classList.add("sent");
-      setTimeout(()=>{ btn.textContent="💬 Test Text"; btn.classList.remove("sent"); btn.disabled=false; },4000);
+      btn.textContent="âœ… Sent!"; btn.classList.add("sent");
+      setTimeout(()=>{ btn.textContent="ðŸ’¬ Test Text"; btn.classList.remove("sent"); btn.disabled=false; },4000);
     } else {
       const err=await res.json(); alert("Error: "+(err.message||res.status));
-      btn.textContent="💬 Test Text"; btn.disabled=false;
+      btn.textContent="ðŸ’¬ Test Text"; btn.disabled=false;
     }
-  } catch(e) { alert("Error: "+e.message); btn.textContent="💬 Test Text"; btn.disabled=false; }
+  } catch(e) { alert("Error: "+e.message); btn.textContent="ðŸ’¬ Test Text"; btn.disabled=false; }
 }
 
 function copyIcs(i) {
@@ -1307,7 +1307,7 @@ function updateIcsRow(i) {
   document.getElementById(`ics-open-${i}`).href  = webcal;
 }
 
-// ── Calendar viewer ──────────────────────────────────────────────────────────
+// â”€â”€ Calendar viewer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function closeModal() { document.getElementById("cal-modal").classList.remove("open"); }
 
 function parseIcsEvents(text) {
@@ -1409,7 +1409,7 @@ function buildHolidayMap(years) {
 
 async function viewCalendar(name) {
   document.getElementById("modal-title").textContent=`${name}'s Schedule`;
-  document.getElementById("modal-body").innerHTML=`<div class="modal-loading">⏳ Loading…</div>`;
+  document.getElementById("modal-body").innerHTML=`<div class="modal-loading">â³ Loadingâ€¦</div>`;
   document.getElementById("cal-modal").classList.add("open");
   try {
     const text=await(await fetch(`${BASE_URL}/${name.toLowerCase()}_schedule.ics?cb=${Date.now()}`)).text();
@@ -1432,7 +1432,7 @@ async function viewCalendar(name) {
         const c=conflictSet.has(ev.dtstart);
         const h=holidays[ev.dtstart];
         const cls=t?"today":c?"conflict":"oncall";
-        const extra=(c?`<span class="cal-conflict-label">⚠️ Vacation conflict</span>`:"")+
+        const extra=(c?`<span class="cal-conflict-label">âš ï¸ Vacation conflict</span>`:"")+
                     (h?`<span class="cal-holiday-label" title="${h}">&#x1F341; ${h}</span>`:"");
         html+=`<div class="cal-event ${cls}"><div class="cal-date">${formatDate(ev.dtstart)}${t?`<span class="cal-today-badge">TODAY</span>`:""}</div><div class="cal-label">${ev.summary}${extra}</div></div>`;
       });
@@ -1440,7 +1440,7 @@ async function viewCalendar(name) {
     if (upVacation.length) {
       html+=`<div class="cal-section-title">Vacation</div>`;
       upVacation.forEach(ev=>{
-        const end=ev.dtend&&ev.dtend!==ev.dtstart?` → ${formatDate(ev.dtend)}`:"";
+        const end=ev.dtend&&ev.dtend!==ev.dtstart?` â†’ ${formatDate(ev.dtend)}`:"";
         html+=`<div class="cal-event vacation"><div class="cal-date">${formatDate(ev.dtstart)}${end}</div><div class="cal-label">${ev.summary}</div></div>`;
       });
     }
@@ -1455,7 +1455,7 @@ async function sendTextAll() {
   if (!token) { alert("Please enter your GitHub token first."); return; }
   if (!confirm("Send a test text to ALL active employees?")) return;
   const btn = document.getElementById("text-all-btn");
-  btn.textContent = "Sending…"; btn.disabled = true;
+  btn.textContent = "Sendingâ€¦"; btn.disabled = true;
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
       method: "POST",
@@ -1463,16 +1463,16 @@ async function sendTextAll() {
       body: JSON.stringify({ ref: "main", inputs: { test_user: "all" } })
     });
     if (res.ok || res.status === 204) {
-      btn.textContent = "✅ Sent!"; btn.classList.add("sent");
-      setTimeout(() => { btn.textContent = "💬 Test Text All"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
+      btn.textContent = "âœ… Sent!"; btn.classList.add("sent");
+      setTimeout(() => { btn.textContent = "ðŸ’¬ Test Text All"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
     } else {
       const err = await res.json();
       alert("Error: " + (err.message || res.status));
-      btn.textContent = "💬 Test Text All"; btn.disabled = false;
+      btn.textContent = "ðŸ’¬ Test Text All"; btn.disabled = false;
     }
   } catch(e) {
     alert("Error: " + e.message);
-    btn.textContent = "💬 Test Text All"; btn.disabled = false;
+    btn.textContent = "ðŸ’¬ Test Text All"; btn.disabled = false;
   }
 }
 
@@ -1480,7 +1480,7 @@ async function checkConflicts() {
   const token = document.getElementById("gh-token").value.trim();
   if (!token) { alert("Please enter your GitHub token first."); return; }
   const btn = document.getElementById("conflict-btn");
-  btn.textContent = "Checking…"; btn.disabled = true;
+  btn.textContent = "Checkingâ€¦"; btn.disabled = true;
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
       method: "POST",
@@ -1488,16 +1488,16 @@ async function checkConflicts() {
       body: JSON.stringify({ ref: "main", inputs: { test_user: "", send_calendar: "", check_conflicts: "true" } })
     });
     if (res.ok || res.status === 204) {
-      btn.textContent = "✅ Sent!"; btn.classList.add("sent");
-      setTimeout(() => { btn.textContent = "⚠️ Check Conflicts"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
+      btn.textContent = "âœ… Sent!"; btn.classList.add("sent");
+      setTimeout(() => { btn.textContent = "âš ï¸ Check Conflicts"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
     } else {
       const err = await res.json();
       alert("Error: " + (err.message || res.status));
-      btn.textContent = "⚠️ Check Conflicts"; btn.disabled = false;
+      btn.textContent = "âš ï¸ Check Conflicts"; btn.disabled = false;
     }
   } catch(e) {
     alert("Error: " + e.message);
-    btn.textContent = "⚠️ Check Conflicts"; btn.disabled = false;
+    btn.textContent = "âš ï¸ Check Conflicts"; btn.disabled = false;
   }
 }
 
@@ -1532,7 +1532,7 @@ async function checkAllConflicts() {
       const conflicts = findIcsConflicts(events);
       if (conflicts.length > 0) {
         const dates = conflicts.map(d => formatDate(d)).join(", ");
-        badge.innerHTML = `<span class="conflict-badge" title="On call during vacation: ${dates}" onclick="viewCalendar('${name}')">⚠️ Conflict: ${dates}</span>`;
+        badge.innerHTML = `<span class="conflict-badge" title="On call during vacation: ${dates}" onclick="viewCalendar('${name}')">âš ï¸ Conflict: ${dates}</span>`;
       } else {
         badge.innerHTML = "";
       }
@@ -1569,12 +1569,12 @@ async function loadConfigAndCheck() {
   initCalendar();
 }
 
-// ── Rotation Planner ─────────────────────────────────────────────────────────
+// â”€â”€ Rotation Planner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MS_CLIENT_ID  = "619ba349-9370-4f9d-a40a-832f3d43918b";
 const MS_TENANT_ID  = "c6742b62-ae1e-422e-8ade-06070424f6b6";
 const GRAPH_CAL_ID      = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAJS1sEHAAA=";
-// For calendar VIEW — always read from the master production calendar (has vacations + on-call)
+// For calendar VIEW â€” always read from the master production calendar (has vacations + on-call)
 const GRAPH_VIEW_CAL_ID = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAAHInXdAAA=";
 let graphAccessToken = null;
 
@@ -1587,8 +1587,8 @@ function initRotationPlanner() {
     document.getElementById("rebalance-from").value = new Date().toISOString().slice(0,10);
   // Show connected status if refresh token cached
   if (localStorage.getItem("rbt_ms_rt_plain")) {
-    document.getElementById("outlook-status").textContent = "✅ Connected to Outlook";
-    document.getElementById("outlook-connect-btn").textContent = "✅ Outlook Connected";
+    document.getElementById("outlook-status").textContent = "âœ… Connected to Outlook";
+    document.getElementById("outlook-connect-btn").textContent = "âœ… Outlook Connected";
   }
 }
 
@@ -1658,7 +1658,7 @@ async function handleOAuthCallback() {
   window.history.replaceState({}, "", window.location.pathname);
 
   const verifier = sessionStorage.getItem("pkce_verifier");
-  if (!verifier) { alert("PKCE verifier missing — please try connecting again."); return; }
+  if (!verifier) { alert("PKCE verifier missing â€” please try connecting again."); return; }
   sessionStorage.removeItem("pkce_verifier");
 
   const body = new URLSearchParams({
@@ -1680,8 +1680,8 @@ async function handleOAuthCallback() {
     localStorage.setItem("rbt_ms_rt_plain", data.refresh_token);
     window._msRefreshToken = data.refresh_token;
   }
-  document.getElementById("outlook-status").textContent = "✅ Connected to Outlook";
-  document.getElementById("outlook-connect-btn").textContent = "✅ Outlook Connected";
+  document.getElementById("outlook-status").textContent = "âœ… Connected to Outlook";
+  document.getElementById("outlook-connect-btn").textContent = "âœ… Outlook Connected";
 }
 
 async function getGraphToken() {
@@ -1735,7 +1735,7 @@ function hideProgress(wrapId) {
 async function checkDuplicateOncall(token, statusEl) {
   if (!token) return;
   const today = new Date().toISOString().slice(0,10);
-  const end = new Date(); end.setMonth(end.getMonth()+7);
+  const end = new Date(); end.setMonth(end.getMonth()+12);
   let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
           + `?startDateTime=${today}T00:00:00&endDateTime=${end.toISOString().slice(0,10)}T00:00:00`
           + `&$top=999&$select=subject,start`;
@@ -1758,8 +1758,8 @@ async function checkDuplicateOncall(token, statusEl) {
   const dupes = Object.entries(dateMap).filter(([,names]) => names.length > 1);
   if (dupes.length > 0) {
     const list = dupes.slice(0,10).map(([d, names]) => `${d}: ${names.join(" & ")}`).join("\n");
-    if (statusEl) statusEl.textContent = `⚠️ ${dupes.length} day(s) with multiple people on call!`;
-    alert(`⚠️ ${dupes.length} day(s) have multiple people on call:\n\n${list}${dupes.length>10?"\n...and more":""}\n\nPlease fix the calendar.`);
+    if (statusEl) statusEl.textContent = `âš ï¸ ${dupes.length} day(s) with multiple people on call!`;
+    alert(`âš ï¸ ${dupes.length} day(s) have multiple people on call:\n\n${list}${dupes.length>10?"\n...and more":""}\n\nPlease fix the calendar.`);
   }
   return dupes;
 }
@@ -1775,7 +1775,7 @@ function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedD
   // When active employee count is a multiple of 7 (7, 14, 21, 28...),
   // the cycle aligns perfectly with full weeks so everyone always lands
   // on the same weekday. Fix: shift who STARTS each cycle by 1 position
-  // so weekdays rotate — no gaps, no back-to-backs.
+  // so weekdays rotate â€” no gaps, no back-to-backs.
   const needShift = n % 7 === 0;
 
   let d = startDate;
@@ -1813,7 +1813,7 @@ async function previewRotation() {
 
   // 7 months end date
   const end = new Date(startDate + "T00:00:00");
-  end.setMonth(end.getMonth() + 7);
+  end.setMonth(end.getMonth()+12);
   const endDate = end.toISOString().slice(0,10);
 
   document.getElementById("rot-status").textContent = "Building preview...";
@@ -1845,11 +1845,11 @@ async function previewRotation() {
   const n = activeEmps.length;
   const cycle = rotDays * n;
   document.getElementById("rot-summary").textContent =
-    `${activeEmps.length} active employees  •  ${rotDays}-day blocks  •  ${cycle}-day cycle  •  ${newDays.length} days to assign, ${skipDays.length} already occupied`;
+    `${activeEmps.length} active employees  â€¢  ${rotDays}-day blocks  â€¢  ${cycle}-day cycle  â€¢  ${newDays.length} days to assign, ${skipDays.length} already occupied`;
 
   document.getElementById("rot-preview").style.display = "block";
   document.getElementById("rot-push-btn").style.display = token ? "inline-flex" : "none";
-  document.getElementById("rot-status").textContent = token ? "Ready to push." : "Preview only — log in to Outlook to push.";
+  document.getElementById("rot-status").textContent = token ? "Ready to push." : "Preview only â€” log in to Outlook to push.";
 
   // Store for push
   window._rotSchedule = { schedule: newDays, token, endDate };
@@ -1861,7 +1861,7 @@ async function pushRotation() {
   if (!confirm(`Push ${schedule.length} new on-call days to Outlook?`)) return;
 
   const backupOkPush = await backupCalendar(true);
-  if (!backupOkPush && !confirm("⚠️ Backup failed. Continue pushing WITHOUT a backup?")) return;
+  if (!backupOkPush && !confirm("âš ï¸ Backup failed. Continue pushing WITHOUT a backup?")) return;
   const btn = document.getElementById("rot-push-btn");
   btn.textContent = "Pushing..."; btn.disabled = true;
 
@@ -1877,9 +1877,9 @@ async function pushRotation() {
       });
       if (r.ok) return true;
       if (r.status === 429) {
-        // Throttled — wait for Retry-After header or back off
+        // Throttled â€” wait for Retry-After header or back off
         const retryAfter = parseInt(r.headers.get("Retry-After") || "10") * 1000;
-        document.getElementById("rot-status").textContent = `Throttled by Outlook — waiting ${Math.round(retryAfter/1000)}s...`;
+        document.getElementById("rot-status").textContent = `Throttled by Outlook â€” waiting ${Math.round(retryAfter/1000)}s...`;
         await new Promise(res => setTimeout(res, retryAfter));
       } else {
         const err = await r.json().catch(() => ({}));
@@ -1893,7 +1893,7 @@ async function pushRotation() {
   for (let i = 0; i < schedule.length; i++) {
     const s = schedule[i];
     const endDay = addDays(s.date, rotDays);
-    setProgress("rot-bar", "rot-progress", "rot-bar-label", i + 1, schedule.length, `${pushed} ✓ ${failed} ✗`);
+    setProgress("rot-bar", "rot-progress", "rot-bar-label", i + 1, schedule.length, `${pushed} âœ“ ${failed} âœ—`);
     document.getElementById("rot-status").textContent = `Pushing ${i+1} of ${schedule.length}...`;
     const body = JSON.stringify({
       subject:  `${s.person} On Call`,
@@ -1945,19 +1945,19 @@ async function rebalanceRotation() {
   if (!n)        { alert("No active employees."); return; }
   if (!fromDate) { alert("Please select a rebalance start date."); return; }
 
-  const endDate  = (() => { const d = new Date(fromDate); d.setMonth(d.getMonth()+7); return d.toISOString().slice(0,10); })();
+  const endDate  = (() => { const d = new Date(fromDate); d.setMonth(d.getMonth()+12); return d.toISOString().slice(0,10); })();
   const statusEl = document.getElementById("rot-status");
   const btn      = document.getElementById("rot-rebalance-btn");
 
-  const orderLine = shuffle ? `• New shuffled order: ${activeEmps.map(e=>e.name).join(", ")}\n` : "";
-  if (!confirm(`This will:\n• Delete ALL on-call events from ${fromDate} onwards\n• Rebuild the schedule for ${n} active employees through ${endDate}\n${orderLine}\nContinue?`)) return;
+  const orderLine = shuffle ? `â€¢ New shuffled order: ${activeEmps.map(e=>e.name).join(", ")}\n` : "";
+  if (!confirm(`This will:\nâ€¢ Delete ALL on-call events from ${fromDate} onwards\nâ€¢ Rebuild the schedule for ${n} active employees through ${endDate}\n${orderLine}\nContinue?`)) return;
 
   btn.disabled = true;
   statusEl.textContent = "Backing up before rebalance...";
   const backupOkReb = await backupCalendar(true);
-  if (!backupOkReb && !confirm("⚠️ Backup failed. Continue rebalancing WITHOUT a backup?")) { btn.disabled = false; return; }
+  if (!backupOkReb && !confirm("âš ï¸ Backup failed. Continue rebalancing WITHOUT a backup?")) { btn.disabled = false; return; }
 
-  // Step 1 — fetch all on-call events from fromDate forward
+  // Step 1 â€” fetch all on-call events from fromDate forward
   statusEl.textContent = "Fetching events to delete...";
   let fetchUrl = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
                + `?startDateTime=${fromDate}T00:00:00&endDateTime=${endDate}T00:00:00`
@@ -1974,7 +1974,7 @@ async function rebalanceRotation() {
     fetchUrl = data["@odata.nextLink"] || null;
   }
 
-  // Step 2 — find who was last on call the day before fromDate (to continue pattern)
+  // Step 2 â€” find who was last on call the day before fromDate (to continue pattern)
   statusEl.textContent = "Finding rotation anchor...";
   const anchorStart = addDays(fromDate, -14);
   let anchorUrl = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
@@ -2004,7 +2004,7 @@ async function rebalanceRotation() {
     if (lastIdx >= 0) startEmpIdx = (lastIdx + 1) % n;
   }
 
-  // Step 3 — delete all events from fromDate forward
+  // Step 3 â€” delete all events from fromDate forward
   statusEl.textContent = `Deleting ${toDelete.length} events...`;
   let deleted = 0;
   for (let bi = 0; bi < toDelete.length; bi += 20) {
@@ -2017,18 +2017,18 @@ async function rebalanceRotation() {
       });
       if (r.ok) { const res = await r.json(); res.responses.forEach(resp => { if (resp.status < 300) deleted++; }); }
     } catch {}
-    setProgress("clear-bar", "clear-progress", "clear-bar-label", Math.min(bi + 20, toDelete.length), toDelete.length, `${deleted} ✓`);
+    setProgress("clear-bar", "clear-progress", "clear-bar-label", Math.min(bi + 20, toDelete.length), toDelete.length, `${deleted} âœ“`);
     await new Promise(res => setTimeout(res, 300));
   }
   hideProgress("clear-progress");
 
-  // Step 4 — build fresh schedule from fromDate
+  // Step 4 â€” build fresh schedule from fromDate
   statusEl.textContent = "Building new schedule...";
   const newSchedule = buildRotationSchedule(fromDate, endDate, rotDays, activeEmps, new Set());
   // Apply correct starting employee
   newSchedule.forEach((s, i) => { s.person = activeEmps[(startEmpIdx + i) % n].name; });
 
-  // Step 5 — push new events in batches
+  // Step 5 â€” push new events in batches
   let pushed = 0, failed = 0;
   statusEl.textContent = `Pushing ${newSchedule.length} events...`;
   for (let i = 0; i < newSchedule.length; i += 4) {
@@ -2050,13 +2050,13 @@ async function rebalanceRotation() {
       if (r.ok) { const res = await r.json(); res.responses.forEach(resp => { if (resp.status >= 200 && resp.status < 300) pushed++; else failed++; }); }
       else failed += chunk.length;
     } catch { failed += chunk.length; }
-    setProgress("rot-bar", "rot-progress", "rot-bar-label", Math.min(i + 4, newSchedule.length), newSchedule.length, `${pushed} ✓`);
+    setProgress("rot-bar", "rot-progress", "rot-bar-label", Math.min(i + 4, newSchedule.length), newSchedule.length, `${pushed} âœ“`);
     await new Promise(res => setTimeout(res, 200));
   }
 
   hideProgress("rot-progress");
   btn.disabled = false;
-  const msg = `Rebalance complete!\n• ${deleted} events deleted from ${fromDate} forward\n• ${pushed} new events created\n• ${n} active employees${failed ? `\n• ${failed} failed` : ""}`;
+  const msg = `Rebalance complete!\nâ€¢ ${deleted} events deleted from ${fromDate} forward\nâ€¢ ${pushed} new events created\nâ€¢ ${n} active employees${failed ? `\nâ€¢ ${failed} failed` : ""}`;
   statusEl.textContent = msg.replace(/\n/g, "  ");
   alert(msg);
   await checkDuplicateOncall(token, statusEl);
@@ -2066,11 +2066,11 @@ async function rebalanceRotation() {
   if (ghToken) refreshCalendars();
 }
 
-// ── Calendar Backup & Restore ─────────────────────────────────────────────────
+// â”€â”€ Calendar Backup & Restore â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function fetchCurrentOncallEvents(msToken) {
   const today = new Date().toISOString().slice(0,10);
-  const end   = new Date(); end.setMonth(end.getMonth()+7);
+  const end   = new Date(); end.setMonth(end.getMonth()+12);
   let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
           + `?startDateTime=${today}T00:00:00&endDateTime=${end.toISOString().slice(0,10)}T00:00:00`
           + `&$top=999&$select=subject,start,end`;
@@ -2091,8 +2091,8 @@ async function fetchCurrentOncallEvents(msToken) {
 async function backupCalendar(silent = false) {
   const msToken  = await getGraphToken();
   const ghToken  = document.getElementById("gh-token").value;
-  if (!msToken)  { document.getElementById("backup-status").textContent = "❌ Backup failed: Not connected to Outlook."; return false; }
-  if (!ghToken)  { document.getElementById("backup-status").textContent = "❌ Backup failed: Admin login required."; return false; }
+  if (!msToken)  { document.getElementById("backup-status").textContent = "âŒ Backup failed: Not connected to Outlook."; return false; }
+  if (!ghToken)  { document.getElementById("backup-status").textContent = "âŒ Backup failed: Admin login required."; return false; }
 
   const statusEl = document.getElementById("backup-status");
   if (!silent) statusEl.textContent = "Backing up...";
@@ -2125,10 +2125,10 @@ async function backupCalendar(silent = false) {
 
     const msg = `Backed up ${events.length} events at ${new Date().toLocaleTimeString()}`;
     document.getElementById("backup-info").textContent = msg;
-    if (!silent) statusEl.textContent = "✅ " + msg;
+    if (!silent) statusEl.textContent = "âœ… " + msg;
     return true;
   } catch(e) {
-    const msg = "❌ Backup failed: " + e.message;
+    const msg = "âŒ Backup failed: " + e.message;
     console.error("Backup error:", e);
     document.getElementById("backup-status").textContent = msg;
     return false;
@@ -2148,7 +2148,7 @@ async function loadBackupInfo() {
     if (!r.ok) return;
     const data = await r.json();
     const backup = JSON.parse(decodeURIComponent(Array.from(atob(data.content.replace(/\n/g,""))).map(c=>('%'+('00'+c.charCodeAt(0).toString(16)).slice(-2))).join('')));
-    document.getElementById("backup-info").textContent = `Latest: ${new Date(backup.backed_up).toLocaleString()} — ${backup.event_count} events`;
+    document.getElementById("backup-info").textContent = `Latest: ${new Date(backup.backed_up).toLocaleString()} â€” ${backup.event_count} events`;
   } catch {}
 }
 
@@ -2160,20 +2160,20 @@ async function loadBackupHistory() {
   try {
     const r = await fetch(`https://api.github.com/repos/${REPO}/commits?path=docs/calendar_backup.json&per_page=20`,
       { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
-    if (!r.ok) { statusEl.textContent = "❌ Could not load history."; return; }
+    if (!r.ok) { statusEl.textContent = "âŒ Could not load history."; return; }
     const commits = await r.json();
     const sel = document.getElementById("backup-version-select");
-    sel.innerHTML = '<option value="">— Select a backup version —</option>';
+    sel.innerHTML = '<option value="">â€” Select a backup version â€”</option>';
     commits.forEach(c => {
       const opt = document.createElement("option");
       opt.value = c.sha;
-      opt.textContent = `${new Date(c.commit.author.date).toLocaleString()} — ${c.commit.message.replace("Backup: ","")}`;
+      opt.textContent = `${new Date(c.commit.author.date).toLocaleString()} â€” ${c.commit.message.replace("Backup: ","")}`;
       sel.appendChild(opt);
     });
     document.getElementById("backup-history-wrap").style.display = "block";
     document.getElementById("backup-diff").style.display = "none";
     statusEl.textContent = `${commits.length} backup versions found.`;
-  } catch(e) { statusEl.textContent = "❌ " + e.message; }
+  } catch(e) { statusEl.textContent = "âŒ " + e.message; }
 }
 
 async function getBackupAtCommit(sha, ghToken) {
@@ -2208,17 +2208,17 @@ async function previewBackupDiff() {
 
     let html = `<strong>Comparing backup (${new Date(backup.backed_up).toLocaleString()}) to current calendar:</strong><br><br>`;
     if (!added.length && !removed.length && !changed.length) {
-      html += "✅ No differences — calendar matches this backup.";
+      html += "âœ… No differences â€” calendar matches this backup.";
     } else {
-      if (removed.length) html += `<span style="color:#dc2626">➖ ${removed.length} events in backup but missing from calendar:</span><br>` + removed.map(([d,s])=>`&nbsp;&nbsp;${d} — ${s}`).join("<br>") + "<br><br>";
-      if (added.length)   html += `<span style="color:#2d6a27">➕ ${added.length} events in calendar not in backup:</span><br>` + added.map(([d,s])=>`&nbsp;&nbsp;${d} — ${s}`).join("<br>") + "<br><br>";
-      if (changed.length) html += `<span style="color:#d97706">✏️ ${changed.length} events with different assignments:</span><br>` + changed.map(([d,s])=>`&nbsp;&nbsp;${d}: was "${s}", now "${currentDates.get(d)}"`).join("<br>");
+      if (removed.length) html += `<span style="color:#dc2626">âž– ${removed.length} events in backup but missing from calendar:</span><br>` + removed.map(([d,s])=>`&nbsp;&nbsp;${d} â€” ${s}`).join("<br>") + "<br><br>";
+      if (added.length)   html += `<span style="color:#2d6a27">âž• ${added.length} events in calendar not in backup:</span><br>` + added.map(([d,s])=>`&nbsp;&nbsp;${d} â€” ${s}`).join("<br>") + "<br><br>";
+      if (changed.length) html += `<span style="color:#d97706">âœï¸ ${changed.length} events with different assignments:</span><br>` + changed.map(([d,s])=>`&nbsp;&nbsp;${d}: was "${s}", now "${currentDates.get(d)}"`).join("<br>");
     }
 
     diffEl.innerHTML = html;
     diffEl.style.display = "block";
     statusEl.textContent = `${removed.length} missing, ${added.length} added, ${changed.length} changed since this backup.`;
-  } catch(e) { statusEl.textContent = "❌ " + e.message; }
+  } catch(e) { statusEl.textContent = "âŒ " + e.message; }
 }
 
 async function restoreCalendar() {
@@ -2235,7 +2235,7 @@ async function restoreCalendar() {
   try {
     backup = sha ? await getBackupAtCommit(sha, ghToken)
                  : await (await fetch(`${BASE_URL}/calendar_backup.json?cb=${Date.now()}`)).json();
-  } catch(e) { statusEl.textContent = "❌ Could not load backup."; return; }
+  } catch(e) { statusEl.textContent = "âŒ Could not load backup."; return; }
 
   if (!confirm(`Restore from backup:\n${new Date(backup.backed_up).toLocaleString()}\n${backup.event_count} events\n\nThe current calendar will be backed up first, then missing events recreated.`)) return;
 
@@ -2269,13 +2269,13 @@ async function restoreCalendar() {
       if (r.ok) { const res = await r.json(); res.responses.forEach(resp => { if (resp.status < 300) restored++; else failed++; }); }
       else failed += chunk.length;
     } catch { failed += chunk.length; }
-    setProgress("restore-bar", "restore-progress", "restore-bar-label", Math.min(i + 4, toRestore.length), toRestore.length, `${restored} ✓`);
+    setProgress("restore-bar", "restore-progress", "restore-bar-label", Math.min(i + 4, toRestore.length), toRestore.length, `${restored} âœ“`);
     await new Promise(r => setTimeout(r, 200));
   }
 
   hideProgress("restore-progress");
   btn.disabled = false;
-  const msg = `Restore complete — ${restored} recreated, ${skipped} already existed${failed ? `, ${failed} failed` : ""}.`;
+  const msg = `Restore complete â€” ${restored} recreated, ${skipped} already existed${failed ? `, ${failed} failed` : ""}.`;
   statusEl.textContent = msg;
   alert(msg);
   if (restored > 0) { mcalLoaded = false; initCalendar(); }
@@ -2329,7 +2329,7 @@ async function clearOncallEvents() {
   }
 
   const backupOk = await backupCalendar(true);
-  if (!backupOk && !confirm("⚠️ Backup failed (check Outlook connection and admin login).\n\nContinue deleting WITHOUT a backup?")) {
+  if (!backupOk && !confirm("âš ï¸ Backup failed (check Outlook connection and admin login).\n\nContinue deleting WITHOUT a backup?")) {
     btn.disabled = false; return;
   }
   statusEl.textContent = `Deleting ${toDelete.length} events in batches...`;
@@ -2360,12 +2360,12 @@ async function clearOncallEvents() {
       } else { failed += chunk.length; }
     } catch(e) { failed += chunk.length; }
 
-    setProgress("clear-bar", "clear-progress", "clear-bar-label", Math.min(i + BATCH_SIZE, toDelete.length), toDelete.length, `${deleted} ✓`);
+    setProgress("clear-bar", "clear-progress", "clear-bar-label", Math.min(i + BATCH_SIZE, toDelete.length), toDelete.length, `${deleted} âœ“`);
     await new Promise(res => setTimeout(res, 300)); // small pause between batches
   }
 
   hideProgress("clear-progress");
-  const msg = `Done — ${deleted} of ${toDelete.length} deleted${failed ? `, ${failed} failed` : ""}.`;
+  const msg = `Done â€” ${deleted} of ${toDelete.length} deleted${failed ? `, ${failed} failed` : ""}.`;
   statusEl.textContent = msg;
   alert(msg);
   btn.disabled = false;
@@ -2375,7 +2375,7 @@ async function clearOncallEvents() {
   if (ghToken && deleted > 0) refreshCalendars();
 }
 
-// ── Version check ────────────────────────────────────────────────────────────
+// â”€â”€ Version check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function checkVersion() {
   try {
     const r = await fetch(`${BASE_URL}/version.json?cb=${Date.now()}`, { cache:"no-store" });
@@ -2393,10 +2393,10 @@ function dismissUpdate() {
   document.getElementById("update-banner").style.display = "none";
 }
 
-// Poll every 5 minutes — shows banner automatically without needing a tab switch
+// Poll every 5 minutes â€” shows banner automatically without needing a tab switch
 setInterval(checkVersion, 5 * 60 * 1000);
 
-// ── Month Calendar ────────────────────────────────────────────────────────────
+// â”€â”€ Month Calendar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let mcalYear  = new Date().getFullYear();
 let mcalMonth = new Date().getMonth(); // 0-based
 let mcalEvents = {}; // { "YYYYMMDD": [{name, type}] }
@@ -2407,7 +2407,7 @@ async function loadAllIcsForCalendar() {
   const token = await getGraphToken();
 
   if (token) {
-    // Use Graph API — fetch from BOTH calendars (view cal for vacations, main cal for on-call)
+    // Use Graph API â€” fetch from BOTH calendars (view cal for vacations, main cal for on-call)
     const start = new Date(mcalYear, mcalMonth - 1, 1).toISOString().slice(0,10);
     const end   = new Date(mcalYear, mcalMonth + 2, 1).toISOString().slice(0,10);
     const allEvs = [];
@@ -2430,9 +2430,9 @@ async function loadAllIcsForCalendar() {
       const isVacation = s.includes("vacation");
       if (!isOncall && !isVacation) return;
       const type = isOncall ? "oncall" : "vacation";
-      // Extract person name — first word that isn't a keyword
-      const skip = new Set(["on","call","oncall","vacation","-","–"]);
-      const name = subj.split(/[\s\-–]+/).find(w => w.length > 1 && !skip.has(w.toLowerCase())) || subj.split(" ")[0];
+      // Extract person name â€” first word that isn't a keyword
+      const skip = new Set(["on","call","oncall","vacation","-","â€“"]);
+      const name = subj.split(/[\s\-â€“]+/).find(w => w.length > 1 && !skip.has(w.toLowerCase())) || subj.split(" ")[0];
       const dtstart = (ev.start.date || ev.start.dateTime.slice(0,10)).replace(/-/g,"");
       let dtend     = (ev.end.date   || ev.end.dateTime.slice(0,10)).replace(/-/g,"");
       // If same day or no end, treat as 1-day event
