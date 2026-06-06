@@ -489,7 +489,26 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
     orders_changed = False
     for yr in [today.year, today.year + 1]:
         if str(yr) not in orders:
-            get_order_for_year(yr, active_employees, orders)
+            if yr == today.year:
+                # Current year: derive order from existing calendar events (preserve what's already scheduled)
+                year_events = sorted(
+                    [ev for ev in within_window if ev["date"].startswith(str(yr))],
+                    key=lambda x: x["date"]
+                )
+                seen = []
+                for ev in year_events:
+                    name = ev["subject"].split()[0]
+                    if name not in seen:
+                        seen.append(name)
+                # Append any active employees not yet seen
+                for emp in active_employees:
+                    if emp["name"] not in seen:
+                        seen.append(emp["name"])
+                orders[str(yr)] = seen
+                print(f"  Rotation order for {yr} (derived from calendar): {', '.join(seen)}")
+            else:
+                # Future year: shuffle
+                get_order_for_year(yr, active_employees, orders)
             orders_changed = True
     if orders_changed:
         save_rotation_orders(orders)
