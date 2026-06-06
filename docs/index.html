@@ -936,6 +936,7 @@ async function dirToggleActive(firstName, active) {
   if (idx < 0) return;
   config.employees[idx].active = active;
   if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
+  initRotationPlanner(); // update active count in rotation planner
   const notice = document.getElementById("dir-save-notice");
   notice.textContent = "Saving..."; notice.style.display = "block"; notice.style.background = "#f0fdf4"; notice.style.color = "#166534"; notice.style.borderColor = "#bbf7d0";
   const ok = await saveConfigSilent();
@@ -2406,18 +2407,21 @@ async function loadAllIcsForCalendar() {
   const token = await getGraphToken();
 
   if (token) {
-    // Use Graph API — full directory, accurate data, no ICS dependency
+    // Use Graph API — fetch from BOTH calendars (view cal for vacations, main cal for on-call)
     const start = new Date(mcalYear, mcalMonth - 1, 1).toISOString().slice(0,10);
     const end   = new Date(mcalYear, mcalMonth + 2, 1).toISOString().slice(0,10);
-    let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_VIEW_CAL_ID}/calendarView`
-            + `?startDateTime=${start}T00:00:00&endDateTime=${end}T00:00:00`
-            + `&$top=999&$select=subject,start,end`;
     const allEvs = [];
-    while (url) {
-      const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      const d = await r.json();
-      (d.value || []).forEach(e => allEvs.push(e));
-      url = d["@odata.nextLink"] || null;
+    const calIds = GRAPH_VIEW_CAL_ID === GRAPH_CAL_ID ? [GRAPH_CAL_ID] : [GRAPH_VIEW_CAL_ID, GRAPH_CAL_ID];
+    for (const calId of calIds) {
+      let url = `https://graph.microsoft.com/v1.0/me/calendars/${calId}/calendarView`
+              + `?startDateTime=${start}T00:00:00&endDateTime=${end}T00:00:00`
+              + `&$top=999&$select=subject,start,end`;
+      while (url) {
+        const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        const d = await r.json();
+        (d.value || []).forEach(e => allEvs.push(e));
+        url = d["@odata.nextLink"] || null;
+      }
     }
     allEvs.forEach(ev => {
       const subj = ev.subject || "";
