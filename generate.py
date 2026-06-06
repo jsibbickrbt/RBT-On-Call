@@ -394,20 +394,23 @@ def get_all_names():
 
 def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
     """
-    Ensures exactly 12 months of on-call events exist from today.
-    Fetches existing events, finds the last date covered, then fills
-    any gap between the last event and (today + 12 months).
+    Maintains a rolling 365-day on-call window.
+    Every run:
+      1. Deletes events beyond today + 365 days
+      2. Fills any gap between the last assigned day and today + 365 days
+    Net result: always exactly 365 days scheduled, no more, no less.
     """
     today    = date.today()
-    end_date = today + timedelta(days=365)
+    end_date = today + timedelta(days=364)  # inclusive last day = today + 364
 
-    # Fetch all existing on-call events in the window
+    # Fetch ALL future on-call events (look a bit beyond 365 to catch over-runs)
+    look_end = today + timedelta(days=400)
     start_str = today.strftime("%Y-%m-%dT00:00:00")
-    end_str   = end_date.strftime("%Y-%m-%dT00:00:00")
+    end_str   = look_end.strftime("%Y-%m-%dT00:00:00")
     url = (f"https://graph.microsoft.com/v1.0/me/calendars/{cal_id}/calendarView"
            f"?startDateTime={start_str}&endDateTime={end_str}"
-           f"&$top=999&$select=subject,start")
-    existing_events = []
+           f"&$top=999&$select=id,subject,start")
+    all_events = []
     while url:
         req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
         with urllib.request.urlopen(req) as r:
@@ -416,41 +419,58 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
             s = ev.get("subject", "").lower()
             if ("on call" in s or "oncall" in s) and "vacation" not in s:
                 dt = ev["start"].get("date") or ev["start"].get("dateTime", "")[:10]
-                existing_events.append(dt)
+                all_events.append({"id": ev["id"], "date": dt, "subject": ev["subject"]})
         url = data.get("@odata.nextLink")
 
-    if not existing_events:
+    # Step 1 — delete anything beyond today + 364
+    to_delete = [ev for ev in all_events if ev["date"] > end_date.strftime("%Y-%m-%d")]
+    if to_delete:
+        print(f"  Trimming {len(to_delete)} events beyond day 365...")
+        for i in range(0, len(to_delete), 20):
+            chunk = to_delete[i:i+20]
+            body = json.dumps({"requests": [
+                {"id": str(j+1), "method": "DELETE", "url": f"/me/events/{ev['id']}"}
+                for j, ev in enumerate(chunk)
+            ]}).encode()
+            req = urllib.request.Request("https://graph.microsoft.com/v1.0/$batch", data=body,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+            urllib.request.urlopen(req)
+
+    # Step 2 — find last covered date within window
+    within_window = [ev for ev in all_events if ev["date"] <= end_date.strftime("%Y-%m-%d")]
+    occupied = set(ev["date"] for ev in within_window)
+
+    if not occupied:
         last_covered = today - timedelta(days=1)
     else:
-        last_covered = datetime.strptime(max(existing_events), "%Y-%m-%d").date()
+        last_covered = datetime.strptime(max(occupied), "%Y-%m-%d").date()
 
-    if last_covered >= end_date - timedelta(days=1):
-        print(f"  Calendar already covered through {last_covered} — no top-up needed")
+    fill_start = last_covered + timedelta(days=rotation_days)
+    if fill_start > end_date:
+        print(f"  Calendar fully covered to {end_date} — no fill needed")
         return
 
-    # Find who was last on call to continue pattern
-    fill_start = last_covered + timedelta(days=rotation_days)
-    existing_events.sort()
-    last_person_idx = 0
+    # Step 3 — determine who continues the rotation
     n = len(active_employees)
-    if existing_events:
-        # Find person on last covered date to determine next in rotation
-        last_date = max(existing_events)
+    last_person_idx = 0
+    if within_window:
+        # Find person assigned on the last covered day
+        last_ev = max(within_window, key=lambda x: x["date"])
+        last_name = last_ev["subject"].split()[0].lower()
         for i, emp in enumerate(active_employees):
-            if emp["name"].lower() in last_date:  # rough match
+            if emp["name"].lower() == last_name:
                 last_person_idx = (i + 1) % n
                 break
 
-    print(f"  Topping up on-call from {fill_start} to {end_date} ({(end_date - fill_start).days} days)...")
+    print(f"  Filling {(end_date - fill_start).days + 1} days from {fill_start} to {end_date}...")
 
-    occupied = set(existing_events)
     events_to_create = []
     current = fill_start
     idx = last_person_idx
     while current <= end_date:
         date_str = current.strftime("%Y-%m-%d")
         if date_str not in occupied:
-            emp  = active_employees[idx % n]
+            emp   = active_employees[idx % n]
             end_d = (current + timedelta(days=rotation_days)).strftime("%Y-%m-%d")
             events_to_create.append({
                 "subject":  f"{emp['name']} On Call",
@@ -461,7 +481,6 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
         idx += 1
         current += timedelta(days=rotation_days)
 
-    # Push in batches of 4
     pushed = 0
     for i in range(0, len(events_to_create), 4):
         batch = events_to_create[i:i+4]
@@ -472,16 +491,13 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
              "body": ev}
             for j, ev in enumerate(batch)
         ]}).encode()
-        req = urllib.request.Request(
-            "https://graph.microsoft.com/v1.0/$batch",
-            data=body,
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Accept": "application/json"}
-        )
+        req = urllib.request.Request("https://graph.microsoft.com/v1.0/$batch", data=body,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Accept": "application/json"})
         with urllib.request.urlopen(req) as r:
             result = json.loads(r.read())
         pushed += sum(1 for resp in result.get("responses", []) if resp.get("status", 0) < 300)
 
-    print(f"  Top-up complete: {pushed} events created")
+    print(f"  Rolling window top-up: {pushed} events added, {len(to_delete)} trimmed")
 
 
 def main():
