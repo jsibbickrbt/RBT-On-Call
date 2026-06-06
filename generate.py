@@ -573,6 +573,7 @@ def main():
 
     use_graph = all(os.environ.get(k) for k in
                     ("MS_CLIENT_ID", "MS_CLIENT_SECRET", "MS_TENANT_ID", "MS_REFRESH_TOKEN"))
+    print(f"  use_graph={use_graph}")
 
     if use_graph:
         print("Fetching calendar via Microsoft Graph API (2-year window)...")
