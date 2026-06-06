@@ -1799,7 +1799,7 @@ async function checkDuplicateOncall(token, statusEl) {
   const end = new Date(); end.setMonth(end.getMonth()+12);
   let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
           + `?startDateTime=${today}T00:00:00&endDateTime=${end.toISOString().slice(0,10)}T00:00:00`
-          + `&$top=999&$select=subject,start`;
+          + `&$top=999&$select=id,subject,start`;
   const evs = [];
   while (url) {
     const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -1807,6 +1807,7 @@ async function checkDuplicateOncall(token, statusEl) {
     (d.value || []).forEach(e => evs.push(e));
     url = d["@odata.nextLink"] || null;
   }
+  // Group by date
   const dateMap = {};
   evs.forEach(ev => {
     const s = (ev.subject || "").toLowerCase();
@@ -1814,13 +1815,24 @@ async function checkDuplicateOncall(token, statusEl) {
     const dt = ev.start?.date || ev.start?.dateTime?.slice(0,10);
     if (!dt) return;
     if (!dateMap[dt]) dateMap[dt] = [];
-    dateMap[dt].push(ev.subject);
+    dateMap[dt].push(ev);
   });
-  const dupes = Object.entries(dateMap).filter(([,names]) => names.length > 1);
+
+  const dupes = Object.entries(dateMap).filter(([,evList]) => evList.length > 1);
   if (dupes.length > 0) {
-    const list = dupes.slice(0,10).map(([d, names]) => `${d}: ${names.join(" & ")}`).join("\n");
-    if (statusEl) statusEl.textContent = `⚠️ ${dupes.length} day(s) with multiple people on call!`;
-    alert(`⚠️ ${dupes.length} day(s) have multiple people on call:\n\n${list}${dupes.length>10?"\n...and more":""}\n\nPlease fix the calendar.`);
+    if (statusEl) statusEl.textContent = `⚠️ ${dupes.length} duplicate day(s) found — auto-fixing...`;
+    // Auto-delete extras — keep only the first event per day
+    const toDelete = dupes.flatMap(([,evList]) => evList.slice(1)); // keep [0], delete rest
+    for (let i = 0; i < toDelete.length; i += 20) {
+      const chunk = toDelete.slice(i, i + 20);
+      const batchBody = { requests: chunk.map((ev, j) => ({ id: String(j+1), method: "DELETE", url: `/me/events/${ev.id}` })) };
+      await fetch("https://graph.microsoft.com/v1.0/$batch", {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(batchBody)
+      });
+    }
+    if (statusEl) statusEl.textContent = `✅ Fixed ${toDelete.length} duplicate(s) on ${dupes.length} day(s).`;
+    console.log(`Auto-fixed ${toDelete.length} duplicates on:`, dupes.map(([d]) => d));
   }
   return dupes;
 }
