@@ -1987,9 +1987,11 @@ function openRebalanceModal() {
   const thisYear = new Date().getFullYear();
   const nextYear = thisYear + 1;
   const fromDate = document.getElementById("rebalance-from").value || new Date().toISOString().slice(0,10);
-  document.getElementById("reb-current-label").textContent = `From ${fromDate} through Dec 31, ${thisYear}`;
-  document.getElementById("reb-next-label").textContent    = `Jan 1 through Dec 31, ${nextYear}`;
-  document.getElementById("reb-both-label").textContent    = `From ${fromDate} through Dec 31, ${nextYear}`;
+  const rollingMax2 = (() => { const d = new Date(); d.setDate(d.getDate()+364); return d.toISOString().slice(0,10); })();
+  const capDate = (d) => [d, rollingMax2].sort()[0];
+  document.getElementById("reb-current-label").textContent = `From ${fromDate} through ${capDate(`${thisYear}-12-31`)}`;
+  document.getElementById("reb-next-label").textContent    = fromDate > rollingMax2 ? `Outside 365-day window` : `Jan 1, ${nextYear} through ${capDate(`${nextYear}-12-31`)}`;
+  document.getElementById("reb-both-label").textContent    = `From ${fromDate} through ${rollingMax2} (365-day max)`;
   document.getElementById("rebalance-modal").style.display = "flex";
 }
 function closeRebalanceModal() {
@@ -2006,17 +2008,25 @@ async function rebalanceRotation(scope) {
   const thisYear = new Date().getFullYear();
   const nextYear = thisYear + 1;
 
-  // Determine fromDate and endDate based on scope
+  // Rolling window max = today + 364 days
+  const rollingMax = (() => { const d = new Date(); d.setDate(d.getDate()+364); return d.toISOString().slice(0,10); })();
+
+  // Determine fromDate and endDate based on scope — always capped at rolling window
   let fromDate, endDate;
   if (scope === "current") {
     fromDate = document.getElementById("rebalance-from").value || new Date().toISOString().slice(0,10);
-    endDate  = `${thisYear}-12-31`;
+    endDate  = [`${thisYear}-12-31`, rollingMax].sort()[0];
   } else if (scope === "next") {
     fromDate = `${nextYear}-01-01`;
-    endDate  = `${nextYear}-12-31`;
+    endDate  = [`${nextYear}-12-31`, rollingMax].sort()[0];
   } else { // both
     fromDate = document.getElementById("rebalance-from").value || new Date().toISOString().slice(0,10);
-    endDate  = `${nextYear}-12-31`;
+    endDate  = rollingMax;
+  }
+
+  if (fromDate > rollingMax) {
+    alert(`Nothing to rebalance — Jan 1, ${nextYear} is outside the 365-day window (currently ends ${rollingMax}).`);
+    return;
   }
   // Override the rebalance-from input temporarily for the confirm message
   const origFrom = document.getElementById("rebalance-from").value;
