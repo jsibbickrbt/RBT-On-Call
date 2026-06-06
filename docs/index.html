@@ -2158,8 +2158,9 @@ async function rebalanceRotation(scope) {
 
   // Step 1 — fetch all on-call events from fromDate forward
   statusEl.textContent = "Fetching events to delete...";
+  const deleteTo = addDays(endDate, 1); // +1 day makes endDate inclusive
   let fetchUrl = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
-               + `?startDateTime=${fromDate}T00:00:00&endDateTime=${endDate}T00:00:00`
+               + `?startDateTime=${fromDate}T00:00:00&endDateTime=${deleteTo}T00:00:00`
                + `&$top=999&$select=id,subject,start`;
   const toDelete = [];
   while (fetchUrl) {
