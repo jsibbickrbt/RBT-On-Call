@@ -1,6 +1,6 @@
 """
-RBT On-Call Calendar Generator
-Fetches the master RBT calendar and produces individual ICS files per employee.
+SkySuite On-Call Calendar Generator
+Fetches the master SkySuite calendar and produces individual ICS files per employee.
 
 Handles:
   - RRULE recurring events (any interval)
@@ -362,7 +362,7 @@ def build_ics(all_events, name):
         f"PRODID:-//{name} Schedule//EN",
         f"CALNAME:{name} Schedule",
         f"X-WR-CALNAME:{name} Schedule",
-        f"X-WR-CALDESC:{name} on-call and vacation schedule — auto-updated daily from RBT calendar",
+        f"X-WR-CALDESC:{name} on-call and vacation schedule — auto-updated daily from SkySuite calendar",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
         "REFRESH-INTERVAL;VALUE=DURATION:PT1H",

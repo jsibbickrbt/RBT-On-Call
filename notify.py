@@ -113,7 +113,7 @@ def main():
 
     # SEND CALENDAR LINK MODE
     if send_calendar:
-        base_url = "https://jsibbickrbt.github.io/RBT-On-Call"
+        base_url = "https://devskysuite.github.io/RBT-On-Call"
         for emp in CONFIG["employees"]:
             if emp["name"].lower() == send_calendar and emp.get("active", True):
                 name  = emp["name"]
@@ -121,7 +121,7 @@ def main():
                 if phone:
                     ics_url = f"{base_url}/{name.lower()}_schedule.ics"
                     webcal  = ics_url.replace("https://", "webcal://")
-                    msg = (f"Hi {name}! Here is your RBT on-call calendar link.\n\n"
+                    msg = (f"Hi {name}! Here is your SkySuite on-call calendar link.\n\n"
                            f"On iPhone/iPad: tap the link to subscribe in Calendar\n{webcal}\n\n"
                            f"On Android/other: add this URL in your calendar app\n{ics_url}")
                     status = send_sms(sid, token, from_num, phone, msg)
