@@ -1,106 +1,16 @@
 {
-  "backed_up": "2026-06-06T02:23:04.716Z",
-  "event_count": 278,
+  "backed_up": "2026-06-06T02:24:37.951Z",
+  "event_count": 260,
   "events": [
-    {
-      "subject": "Zenon On Call",
-      "start": "2027-01-01",
-      "end": "2027-01-02"
-    },
-    {
-      "subject": "Braeden On Call",
-      "start": "2027-01-02",
-      "end": "2027-01-03"
-    },
-    {
-      "subject": "Joel On Call",
-      "start": "2027-01-03",
-      "end": "2027-01-04"
-    },
-    {
-      "subject": "Liam On Call",
-      "start": "2027-01-04",
-      "end": "2027-01-05"
-    },
-    {
-      "subject": "Mitch On Call",
-      "start": "2027-01-05",
-      "end": "2027-01-06"
-    },
-    {
-      "subject": "Matt On Call",
-      "start": "2027-01-06",
-      "end": "2027-01-07"
-    },
-    {
-      "subject": "Dave On Call",
-      "start": "2027-01-07",
-      "end": "2027-01-08"
-    },
-    {
-      "subject": "Connor On Call",
-      "start": "2027-01-08",
-      "end": "2027-01-09"
-    },
-    {
-      "subject": "Steve On Call",
-      "start": "2027-01-09",
-      "end": "2027-01-10"
-    },
-    {
-      "subject": "Dylan On Call",
-      "start": "2027-01-10",
-      "end": "2027-01-11"
-    },
-    {
-      "subject": "Jamie On Call",
-      "start": "2027-01-11",
-      "end": "2027-01-12"
-    },
-    {
-      "subject": "Jordan On Call",
-      "start": "2027-01-12",
-      "end": "2027-01-13"
-    },
-    {
-      "subject": "Hugo On Call",
-      "start": "2027-01-13",
-      "end": "2027-01-14"
-    },
     {
       "subject": "Will On Call",
       "start": "2027-01-14",
       "end": "2027-01-15"
     },
     {
-      "subject": "Mike On Call",
-      "start": "2027-01-15",
-      "end": "2027-01-16"
-    },
-    {
-      "subject": "Zenon On Call",
-      "start": "2027-01-16",
-      "end": "2027-01-17"
-    },
-    {
-      "subject": "Braeden On Call",
-      "start": "2027-01-17",
-      "end": "2027-01-18"
-    },
-    {
-      "subject": "Joel On Call",
-      "start": "2027-01-18",
-      "end": "2027-01-19"
-    },
-    {
       "subject": "Liam On Call",
       "start": "2027-01-19",
       "end": "2027-01-20"
-    },
-    {
-      "subject": "Mitch On Call",
-      "start": "2027-01-20",
-      "end": "2027-01-21"
     },
     {
       "subject": "Matt On Call",
