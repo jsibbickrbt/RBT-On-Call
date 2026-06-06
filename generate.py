@@ -483,6 +483,17 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
         last_covered = datetime.strptime(max(occupied), "%Y-%m-%d").date()
 
     fill_start = last_covered + timedelta(days=rotation_days)
+
+    # Always ensure rotation orders exist for current and next year
+    orders = load_rotation_orders()
+    orders_changed = False
+    for yr in [today.year, today.year + 1]:
+        if str(yr) not in orders:
+            get_order_for_year(yr, active_employees, orders)
+            orders_changed = True
+    if orders_changed:
+        save_rotation_orders(orders)
+
     if fill_start > end_date:
         print(f"  Calendar fully covered to {end_date} — no fill needed")
         return
@@ -501,11 +512,7 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
 
     print(f"  Filling {(end_date - fill_start).days + 1} days from {fill_start} to {end_date}...")
 
-    # Load/build per-year rotation orders
-    orders = load_rotation_orders()
-    orders_changed = False
-
-    # Pre-generate orders for any years we'll be scheduling
+    # Pre-generate orders for any additional years we'll be scheduling
     years_needed = set()
     cur = fill_start
     while cur <= end_date:
