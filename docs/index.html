@@ -1858,7 +1858,7 @@ async function checkDuplicateOncall(token, statusEl) {
 }
 
 // Generate rotation schedule
-function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedDates) {
+function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedDates, startEmpOffset = 0) {
   const CLEAR_AFTER = "2028-01-31";
   const schedule = [];
   const activeEmps = employees.filter(e => e.active !== false);
@@ -1872,7 +1872,7 @@ function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedD
   const needShift = n % 7 === 0;
 
   let d = startDate;
-  let cycleStartIdx = 0;
+  let cycleStartIdx = startEmpOffset % n;
   let posInCycle    = 0;
 
   while (d <= endDate && d <= CLEAR_AFTER) {
@@ -2198,9 +2198,8 @@ async function rebalanceRotation(scope) {
 
   // Step 4 — build fresh schedule from fromDate
   statusEl.textContent = "Building new schedule...";
-  const newSchedule = buildRotationSchedule(fromDate, endDate, rotDays, activeEmps, new Set());
-  // Apply correct starting employee
-  newSchedule.forEach((s, i) => { s.person = activeEmps[(startEmpIdx + i) % n].name; });
+  // Pass startEmpIdx so rotation continues correctly AND holiday fairness is preserved
+  const newSchedule = buildRotationSchedule(fromDate, endDate, rotDays, activeEmps, new Set(), startEmpIdx);
 
   // Step 5 — push new events in batches
   let pushed = 0, failed = 0;
