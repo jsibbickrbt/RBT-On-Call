@@ -1,19 +1,36 @@
 {
-    "2027":  [
-                 "Joel",
-                 "Steve",
-                 "Dave",
-                 "Braeden",
-                 "Connor",
-                 "Jamie",
-                 "Matt",
-                 "Mike",
-                 "Jordan",
-                 "Liam",
-                 "Mitch",
-                 "Hugo",
-                 "Dylan",
-                 "Will",
-                 "Zenon"
-             ]
+  "2027": [
+    "Joel",
+    "Steve",
+    "Dave",
+    "Braeden",
+    "Connor",
+    "Jamie",
+    "Matt",
+    "Mike",
+    "Jordan",
+    "Liam",
+    "Mitch",
+    "Hugo",
+    "Dylan",
+    "Will",
+    "Zenon"
+  ],
+  "2026": [
+    "Joel",
+    "Mitch",
+    "Jordan",
+    "Steve",
+    "Dylan",
+    "Jamie",
+    "Will",
+    "Dave",
+    "Zenon",
+    "Liam",
+    "Braeden",
+    "Mike",
+    "Connor",
+    "Hugo",
+    "Matt"
+  ]
 }
