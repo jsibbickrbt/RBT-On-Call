@@ -1852,7 +1852,7 @@ async function checkDuplicateOncall(token, statusEl) {
 }
 
 // Generate rotation schedule
-function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedDates, startEmpOffset = 0) {
+function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedDates, startEmpOffset = 0, existingHolCounts = {}) {
   const CLEAR_AFTER = "2028-01-31";
   const schedule = [];
   const activeEmps = employees.filter(e => e.active !== false);
@@ -1900,8 +1900,8 @@ function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedD
   const holidaySlots = schedule.filter(s => !s.occupied && allHolidays[s.date.replace(/-/g,"")]);
 
   if (holidaySlots.length > 0) {
-    // Count holidays per person
-    const holCount = {};
+    // Seed holCount with existing holiday assignments from earlier in the year
+    const holCount = Object.assign({}, existingHolCounts);
     holidaySlots.forEach(s => { holCount[s.person] = (holCount[s.person] || 0) + 1; });
 
     // Keep redistributing until no one has 2+ holidays
@@ -1933,6 +1933,36 @@ function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedD
   return schedule;
 }
 
+async function getExistingHolidayCounts(msToken) {
+  // Fetch all on-call events from Jan 1 of this year to today
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+  const today     = new Date().toISOString().slice(0,10);
+  if (yearStart >= today) return {};
+
+  const holidays = getCanadianHolidays(new Date().getFullYear());
+  const holCounts = {};
+  let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+          + `?startDateTime=${yearStart}T00:00:00&endDateTime=${today}T00:00:00`
+          + `&$top=999&$select=subject,start`;
+  while (url) {
+    try {
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${msToken}` } });
+      const d = await r.json();
+      (d.value || []).forEach(ev => {
+        const s = (ev.subject || "").toLowerCase();
+        if (!(s.includes("on call") || s.includes("oncall")) || s.includes("vacation")) return;
+        const dt = (ev.start.date || ev.start.dateTime.slice(0,10)).replace(/-/g,"");
+        if (!holidays[dt]) return; // only count stat holidays
+        const skip = new Set(["on","call","oncall","-","–"]);
+        const name = (ev.subject||"").split(/\s+/).find(w=>w.length>1&&!skip.has(w.toLowerCase()))||"";
+        if (name) holCounts[name] = (holCounts[name] || 0) + 1;
+      });
+      url = d["@odata.nextLink"] || null;
+    } catch { url = null; }
+  }
+  return holCounts;
+}
+
 async function previewRotation() {
   const startDate = document.getElementById("rot-start").value;
   const rotDays   = parseInt(document.getElementById("rot-days").value);
@@ -1953,7 +1983,8 @@ async function previewRotation() {
     occupiedDates = await getExistingOncallDates(token, startDate, endDate);
   }
 
-  const schedule = buildRotationSchedule(startDate, endDate, rotDays, activeEmps, occupiedDates);
+  const existingHolCounts = token ? await getExistingHolidayCounts(token) : {};
+  const schedule = buildRotationSchedule(startDate, endDate, rotDays, activeEmps, occupiedDates, 0, existingHolCounts);
   const newDays  = schedule.filter(s => !s.occupied);
   const skipDays = schedule.filter(s => s.occupied);
 
@@ -2192,8 +2223,10 @@ async function rebalanceRotation(scope) {
 
   // Step 4 — build fresh schedule from fromDate
   statusEl.textContent = "Building new schedule...";
-  // Pass startEmpIdx so rotation continues correctly AND holiday fairness is preserved
-  const newSchedule = buildRotationSchedule(fromDate, endDate, rotDays, activeEmps, new Set(), startEmpIdx);
+  // Pass startEmpIdx and existing holiday counts so fairness covers the full year
+  statusEl.textContent = "Checking existing holiday assignments...";
+  const existingHolCounts = await getExistingHolidayCounts(token);
+  const newSchedule = buildRotationSchedule(fromDate, endDate, rotDays, activeEmps, new Set(), startEmpIdx, existingHolCounts);
 
   // Step 5 — push new events in batches
   let pushed = 0, failed = 0;
