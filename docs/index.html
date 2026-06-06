@@ -1360,6 +1360,12 @@ async function submitStep1() {
     return;
   }
 
+  // Device already trusted — skip 2FA
+  if (localStorage.getItem("rbt_device_trusted")) {
+    await finishLogin();
+    return;
+  }
+
   // Go to TOTP entry
   document.getElementById("admin-modal-title").textContent = "Enter 2FA Code";
   document.getElementById("admin-modal-desc").textContent = "";
@@ -1407,6 +1413,7 @@ async function finishLogin() {
   const ghToken = await decryptToken(_authPw, storedToken);
   document.getElementById("gh-token").value = ghToken;
   sessionStorage.setItem("rbt_session_token", ghToken);
+  localStorage.setItem("rbt_device_trusted", "1"); // device trusted after first 2FA
   if (document.getElementById("admin-remember")?.checked) {
     localStorage.setItem("rbt_remember_token", ghToken);
   }
