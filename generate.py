@@ -392,6 +392,43 @@ def get_all_names():
     return sorted(names)
 
 
+def load_rotation_orders():
+    """Load per-year rotation orders from file."""
+    path = os.path.join(OUTPUT_DIR, "rotation_orders.json")
+    if os.path.exists(path):
+        with open(path) as f:
+            return json.load(f)
+    return {}
+
+
+def save_rotation_orders(orders):
+    """Save per-year rotation orders to file."""
+    path = os.path.join(OUTPUT_DIR, "rotation_orders.json")
+    with open(path, "w") as f:
+        json.dump(orders, f, indent=2)
+    print(f"  Rotation orders saved to {path}")
+
+
+def get_order_for_year(year, active_employees, orders):
+    """Return the rotation order for a given year, creating a new shuffle if needed."""
+    import random
+    key = str(year)
+    names = [e["name"] for e in active_employees]
+    if key not in orders:
+        shuffled = names[:]
+        random.shuffle(shuffled)
+        orders[key] = shuffled
+        print(f"  New rotation order for {year}: {', '.join(shuffled)}")
+    else:
+        # Ensure any new employees are appended
+        existing = orders[key]
+        new_names = [n for n in names if n not in existing]
+        if new_names:
+            existing.extend(new_names)
+            orders[key] = existing
+    return [e for e in active_employees if e["name"] in orders[key]], orders[key]
+
+
 def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
     """
     Maintains a rolling 365-day on-call window.
@@ -464,22 +501,53 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
 
     print(f"  Filling {(end_date - fill_start).days + 1} days from {fill_start} to {end_date}...")
 
+    # Load/build per-year rotation orders
+    orders = load_rotation_orders()
+    orders_changed = False
+
+    # Pre-generate orders for any years we'll be scheduling
+    years_needed = set()
+    cur = fill_start
+    while cur <= end_date:
+        years_needed.add(cur.year)
+        cur += timedelta(days=rotation_days)
+    for yr in sorted(years_needed):
+        if str(yr) not in orders:
+            get_order_for_year(yr, active_employees, orders)
+            orders_changed = True
+
     events_to_create = []
     current = fill_start
-    idx = last_person_idx
+    current_year = None
+    year_order = []
+    year_idx = last_person_idx
+
     while current <= end_date:
         date_str = current.strftime("%Y-%m-%d")
+
+        # Switch rotation order on Jan 1 of a new year
+        if current.year != current_year:
+            current_year = current.year
+            _, year_order = get_order_for_year(current_year, active_employees, orders)
+            # On Jan 1 reset idx to 0 so we start fresh with the new shuffled order
+            if current.month == 1 and current.day == 1:
+                year_idx = 0
+                print(f"  Jan 1 {current_year} — using new rotation order")
+
         if date_str not in occupied:
-            emp   = active_employees[idx % n]
+            name  = year_order[year_idx % len(year_order)]
             end_d = (current + timedelta(days=rotation_days)).strftime("%Y-%m-%d")
             events_to_create.append({
-                "subject":  f"{emp['name']} On Call",
+                "subject":  f"{name} On Call",
                 "start":    {"dateTime": f"{date_str}T00:00:00", "timeZone": "America/Toronto"},
                 "end":      {"dateTime": f"{end_d}T00:00:00",   "timeZone": "America/Toronto"},
                 "isAllDay": True
             })
-        idx += 1
+        year_idx += 1
         current += timedelta(days=rotation_days)
+
+    if orders_changed:
+        save_rotation_orders(orders)
 
     pushed = 0
     for i in range(0, len(events_to_create), 4):

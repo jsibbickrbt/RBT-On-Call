@@ -472,6 +472,13 @@
       </div>
     </div>
 
+    <!-- Rotation Orders -->
+    <div class="card" id="rotation-orders-card" style="display:none;">
+      <div class="card-title">&#x1F501; Annual Rotation Orders</div>
+      <p style="font-size:0.82rem;color:#6b7280;margin-bottom:14px;">Order reshuffles each Jan 1. New employees are appended to that year's order.</p>
+      <div id="rotation-orders-body"></div>
+    </div>
+
     <!-- Rotation Planner -->
     <div class="card">
     <div class="card-title">&#x1F501; Rotation Planner</div>
@@ -1567,6 +1574,7 @@ async function loadConfigAndCheck() {
   checkAllConflicts();
   initRotationPlanner();
   initCalendar();
+  loadRotationOrders();
 }
 
 // â”€â”€ Rotation Planner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1577,6 +1585,31 @@ const GRAPH_CAL_ID      = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5Y
 // For calendar VIEW â€” always read from the master production calendar (has vacations + on-call)
 const GRAPH_VIEW_CAL_ID = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAAHInXdAAA=";
 let graphAccessToken = null;
+
+async function loadRotationOrders() {
+  try {
+    const r = await fetch(`${BASE_URL}/rotation_orders.json?cb=${Date.now()}`);
+    if (!r.ok) return;
+    const orders = await r.json();
+    const thisYear = new Date().getFullYear();
+    const years = [thisYear, thisYear + 1].filter(y => orders[String(y)]);
+    if (!years.length) return;
+
+    const card = document.getElementById("rotation-orders-card");
+    const body = document.getElementById("rotation-orders-body");
+    card.style.display = "block";
+
+    body.innerHTML = years.map(y => {
+      const order = orders[String(y)];
+      return `<div style="margin-bottom:16px;">
+        <div style="font-size:0.82rem;font-weight:700;color:#1a2e14;margin-bottom:8px;">&#x1F4C5; ${y} Rotation Order</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${order.map((name, i) => `<span style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:3px 10px;font-size:0.78rem;font-weight:600;color:#166534;">${i+1}. ${name}</span>`).join("")}
+        </div>
+      </div>`;
+    }).join("");
+  } catch {}
+}
 
 function initRotationPlanner() {
   const activeEmps = (config.employees || []).filter(e => e.active !== false);
