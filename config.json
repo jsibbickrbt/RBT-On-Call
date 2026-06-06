@@ -1,94 +1,94 @@
 {
-    "calendar_url":  "https://outlook.office365.com/owa/calendar/8252775f384440778c40dea39da6b29a@rbtautomate.com/d1969139dcfb43a29f8fe347b57e672317692357886224327392/calendar.ics",
-    "employees":  [
-                      {
-                          "name":  "Jordan",
-                          "phone":  "+12263872175",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Jamie",
-                          "phone":  "+15198295542",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Dave",
-                          "phone":  "+12268024291",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Will",
-                          "phone":  "5197172216",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Steve",
-                          "phone":  "5197322587",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Braeden",
-                          "phone":  "5197172261",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Zenon",
-                          "phone":  "5197618618",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Mitch",
-                          "phone":  "5196080723",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Liam",
-                          "phone":  "5197175041",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Dylan",
-                          "phone":  "5198653532",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Hugo",
-                          "phone":  "2266986461",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Joel",
-                          "phone":  "5197170878",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Matt",
-                          "phone":  "2269209545",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Mike",
-                          "phone":  "5197575552",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Connor",
-                          "phone":  "5197175047",
-                          "active":  true
-                      },
-                      {
-                          "name":  "Ashton",
-                          "phone":  "519-732-5626",
-                          "active":  false
-                      },
-                      {
-                          "name":  "Austin",
-                          "phone":  "519-761-0387",
-                          "active":  true
-                      }
-                  ],
-    "office":  {
-                   "phone":  "2263872175",
-                   "active":  true
-               }
+  "calendar_url": "https://outlook.office365.com/owa/calendar/8252775f384440778c40dea39da6b29a@rbtautomate.com/d1969139dcfb43a29f8fe347b57e672317692357886224327392/calendar.ics",
+  "employees": [
+    {
+      "name": "Jordan",
+      "phone": "+12263872175",
+      "active": true
+    },
+    {
+      "name": "Jamie",
+      "phone": "+15198295542",
+      "active": true
+    },
+    {
+      "name": "Dave",
+      "phone": "+12268024291",
+      "active": true
+    },
+    {
+      "name": "Will",
+      "phone": "5197172216",
+      "active": true
+    },
+    {
+      "name": "Steve",
+      "phone": "5197322587",
+      "active": true
+    },
+    {
+      "name": "Braeden",
+      "phone": "5197172261",
+      "active": true
+    },
+    {
+      "name": "Zenon",
+      "phone": "5197618618",
+      "active": true
+    },
+    {
+      "name": "Mitch",
+      "phone": "5196080723",
+      "active": true
+    },
+    {
+      "name": "Liam",
+      "phone": "5197175041",
+      "active": true
+    },
+    {
+      "name": "Dylan",
+      "phone": "5198653532",
+      "active": true
+    },
+    {
+      "name": "Hugo",
+      "phone": "2266986461",
+      "active": true
+    },
+    {
+      "name": "Joel",
+      "phone": "5197170878",
+      "active": true
+    },
+    {
+      "name": "Matt",
+      "phone": "2269209545",
+      "active": true
+    },
+    {
+      "name": "Mike",
+      "phone": "5197575552",
+      "active": true
+    },
+    {
+      "name": "Connor",
+      "phone": "5197175047",
+      "active": true
+    },
+    {
+      "name": "Ashton",
+      "phone": "519-732-5626",
+      "active": false
+    },
+    {
+      "name": "Austin",
+      "phone": "519-761-0387",
+      "active": false
+    }
+  ],
+  "office": {
+    "phone": "2263872175",
+    "active": true
+  }
 }
