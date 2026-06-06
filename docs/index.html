@@ -2716,17 +2716,16 @@ async function renderHolidayPanel() {
   }
 
   const rows = Object.entries(holidays)
+    .filter(([d8]) => d8 >= todayStr)
     .sort(([a],[b]) => a.localeCompare(b))
     .map(([d8, name]) => {
-      const isoDate  = `${d8.slice(0,4)}-${d8.slice(4,6)}-${d8.slice(6,8)}`;
-      const isPast   = d8 < todayStr;
+      const isoDate   = `${d8.slice(0,4)}-${d8.slice(4,6)}-${d8.slice(6,8)}`;
       const scheduled = yearEvents[d8];
       let badge;
 
       if (scheduled) {
-        // Actually scheduled — show as confirmed
         badge = `<span class="mcal-pill oncall" style="display:inline-block;">${scheduled}</span>`;
-      } else if (!isPast && rotOrder) {
+      } else if (rotOrder) {
         // Not scheduled yet — project from rotation order
         const projected = projectOncallForDate(isoDate, rotOrder);
         badge = projected
@@ -2738,7 +2737,7 @@ async function renderHolidayPanel() {
 
       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6;">
         <div>
-          <div style="font-size:0.875rem;font-weight:600;color:${isPast?"#9ca3af":"#1a2e14"};">&#x1F341; ${name}</div>
+          <div style="font-size:0.875rem;font-weight:600;color:#1a2e14;">&#x1F341; ${name}</div>
           <div style="font-size:0.78rem;color:#6b7280;">${new Date(isoDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"})}</div>
         </div>
         <div>${badge}</div>
