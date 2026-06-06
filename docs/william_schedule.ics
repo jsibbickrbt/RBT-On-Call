@@ -1,0 +1,11 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//William Schedule//EN
+CALNAME:William Schedule
+X-WR-CALNAME:William Schedule
+X-WR-CALDESC:William on-call and vacation schedule — auto-updated daily from RBT calendar
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+REFRESH-INTERVAL;VALUE=DURATION:PT1H
+X-PUBLISHED-TTL:PT1H
+END:VCALENDAR

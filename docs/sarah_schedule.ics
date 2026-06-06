@@ -1,0 +1,11 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Sarah Schedule//EN
+CALNAME:Sarah Schedule
+X-WR-CALNAME:Sarah Schedule
+X-WR-CALDESC:Sarah on-call and vacation schedule — auto-updated daily from RBT calendar
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+REFRESH-INTERVAL;VALUE=DURATION:PT1H
+X-PUBLISHED-TTL:PT1H
+END:VCALENDAR

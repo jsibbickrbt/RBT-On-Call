@@ -374,11 +374,213 @@ def build_ics(all_events, name):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def get_all_names():
+    """Return a deduplicated list of first names from config employees + full directory."""
+    names = set()
+    # On-call rotation employees
+    for emp in CONFIG.get("employees", []):
+        names.add(emp["name"])
+    # Full directory (all staff)
+    dir_path = os.path.join(OUTPUT_DIR, "directory.json")
+    if os.path.exists(dir_path):
+        with open(dir_path) as f:
+            directory = json.load(f)
+        for emp in directory.get("field_employees", []) + directory.get("office_employees", []):
+            # Extract first name only (matches how calendar events are named)
+            first = emp["name"].split()[0].capitalize()
+            names.add(first)
+    return sorted(names)
+
+
+def load_rotation_orders():
+    """Load per-year rotation orders from file."""
+    path = os.path.join(OUTPUT_DIR, "rotation_orders.json")
+    if os.path.exists(path):
+        with open(path) as f:
+            return json.load(f)
+    return {}
+
+
+def save_rotation_orders(orders):
+    """Save per-year rotation orders to file."""
+    path = os.path.join(OUTPUT_DIR, "rotation_orders.json")
+    with open(path, "w") as f:
+        json.dump(orders, f, indent=2)
+    print(f"  Rotation orders saved to {path}")
+
+
+def get_order_for_year(year, active_employees, orders):
+    """Return the rotation order for a given year, creating a new shuffle if needed."""
+    import random
+    key = str(year)
+    names = [e["name"] for e in active_employees]
+    if key not in orders:
+        shuffled = names[:]
+        random.shuffle(shuffled)
+        orders[key] = shuffled
+        print(f"  New rotation order for {year}: {', '.join(shuffled)}")
+    else:
+        # Ensure any new employees are appended
+        existing = orders[key]
+        new_names = [n for n in names if n not in existing]
+        if new_names:
+            existing.extend(new_names)
+            orders[key] = existing
+    return [e for e in active_employees if e["name"] in orders[key]], orders[key]
+
+
+def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
+    """
+    Maintains a rolling 365-day on-call window.
+    Every run:
+      1. Deletes events beyond today + 365 days
+      2. Fills any gap between the last assigned day and today + 365 days
+    Net result: always exactly 365 days scheduled, no more, no less.
+    """
+    today    = date.today()
+    end_date = today + timedelta(days=364)  # inclusive last day = today + 364
+
+    # Fetch ALL future on-call events (look a bit beyond 365 to catch over-runs)
+    look_end = today + timedelta(days=400)
+    start_str = today.strftime("%Y-%m-%dT00:00:00")
+    end_str   = look_end.strftime("%Y-%m-%dT00:00:00")
+    url = (f"https://graph.microsoft.com/v1.0/me/calendars/{cal_id}/calendarView"
+           f"?startDateTime={start_str}&endDateTime={end_str}"
+           f"&$top=999&$select=id,subject,start")
+    all_events = []
+    while url:
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
+        with urllib.request.urlopen(req) as r:
+            data = json.loads(r.read())
+        for ev in data.get("value", []):
+            s = ev.get("subject", "").lower()
+            if ("on call" in s or "oncall" in s) and "vacation" not in s:
+                dt = ev["start"].get("date") or ev["start"].get("dateTime", "")[:10]
+                all_events.append({"id": ev["id"], "date": dt, "subject": ev["subject"]})
+        url = data.get("@odata.nextLink")
+
+    # Step 1 — delete anything beyond today + 364
+    to_delete = [ev for ev in all_events if ev["date"] > end_date.strftime("%Y-%m-%d")]
+    if to_delete:
+        print(f"  Trimming {len(to_delete)} events beyond day 365...")
+        for i in range(0, len(to_delete), 20):
+            chunk = to_delete[i:i+20]
+            body = json.dumps({"requests": [
+                {"id": str(j+1), "method": "DELETE", "url": f"/me/events/{ev['id']}"}
+                for j, ev in enumerate(chunk)
+            ]}).encode()
+            req = urllib.request.Request("https://graph.microsoft.com/v1.0/$batch", data=body,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+            urllib.request.urlopen(req)
+
+    # Step 2 — find last covered date within window
+    within_window = [ev for ev in all_events if ev["date"] <= end_date.strftime("%Y-%m-%d")]
+    occupied = set(ev["date"] for ev in within_window)
+
+    if not occupied:
+        last_covered = today - timedelta(days=1)
+    else:
+        last_covered = datetime.strptime(max(occupied), "%Y-%m-%d").date()
+
+    fill_start = last_covered + timedelta(days=rotation_days)
+
+    # Always ensure rotation orders exist for current and next year
+    orders = load_rotation_orders()
+    orders_changed = False
+    for yr in [today.year, today.year + 1]:
+        if str(yr) not in orders:
+            get_order_for_year(yr, active_employees, orders)
+            orders_changed = True
+    if orders_changed:
+        save_rotation_orders(orders)
+
+    if fill_start > end_date:
+        print(f"  Calendar fully covered to {end_date} — no fill needed")
+        return
+
+    # Step 3 — determine who continues the rotation
+    n = len(active_employees)
+    last_person_idx = 0
+    if within_window:
+        # Find person assigned on the last covered day
+        last_ev = max(within_window, key=lambda x: x["date"])
+        last_name = last_ev["subject"].split()[0].lower()
+        for i, emp in enumerate(active_employees):
+            if emp["name"].lower() == last_name:
+                last_person_idx = (i + 1) % n
+                break
+
+    print(f"  Filling {(end_date - fill_start).days + 1} days from {fill_start} to {end_date}...")
+
+    # Pre-generate orders for any additional years we'll be scheduling
+    years_needed = set()
+    cur = fill_start
+    while cur <= end_date:
+        years_needed.add(cur.year)
+        cur += timedelta(days=rotation_days)
+    for yr in sorted(years_needed):
+        if str(yr) not in orders:
+            get_order_for_year(yr, active_employees, orders)
+            orders_changed = True
+
+    events_to_create = []
+    current = fill_start
+    current_year = None
+    year_order = []
+    year_idx = last_person_idx
+
+    while current <= end_date:
+        date_str = current.strftime("%Y-%m-%d")
+
+        # Switch rotation order on Jan 1 of a new year
+        if current.year != current_year:
+            current_year = current.year
+            _, year_order = get_order_for_year(current_year, active_employees, orders)
+            # On Jan 1 reset idx to 0 so we start fresh with the new shuffled order
+            if current.month == 1 and current.day == 1:
+                year_idx = 0
+                print(f"  Jan 1 {current_year} — using new rotation order")
+
+        if date_str not in occupied:
+            name  = year_order[year_idx % len(year_order)]
+            end_d = (current + timedelta(days=rotation_days)).strftime("%Y-%m-%d")
+            events_to_create.append({
+                "subject":  f"{name} On Call",
+                "start":    {"dateTime": f"{date_str}T00:00:00", "timeZone": "America/Toronto"},
+                "end":      {"dateTime": f"{end_d}T00:00:00",   "timeZone": "America/Toronto"},
+                "isAllDay": True
+            })
+        year_idx += 1
+        current += timedelta(days=rotation_days)
+
+    if orders_changed:
+        save_rotation_orders(orders)
+
+    pushed = 0
+    for i in range(0, len(events_to_create), 4):
+        batch = events_to_create[i:i+4]
+        body = json.dumps({"requests": [
+            {"id": str(j+1), "method": "POST",
+             "url": f"/me/calendars/{cal_id}/events",
+             "headers": {"Content-Type": "application/json"},
+             "body": ev}
+            for j, ev in enumerate(batch)
+        ]}).encode()
+        req = urllib.request.Request("https://graph.microsoft.com/v1.0/$batch", data=body,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Accept": "application/json"})
+        with urllib.request.urlopen(req) as r:
+            result = json.loads(r.read())
+        pushed += sum(1 for resp in result.get("responses", []) if resp.get("status", 0) < 300)
+
+    print(f"  Rolling window top-up: {pushed} events added, {len(to_delete)} trimmed")
+
+
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     use_graph = all(os.environ.get(k) for k in
                     ("MS_CLIENT_ID", "MS_CLIENT_SECRET", "MS_TENANT_ID", "MS_REFRESH_TOKEN"))
+    print(f"  use_graph={use_graph}")
 
     if use_graph:
         print("Fetching calendar via Microsoft Graph API (2-year window)...")
@@ -393,11 +595,10 @@ def main():
     events = parse_events(raw)
     print(f"  {len(events)} total events parsed")
 
-    for emp in CONFIG["employees"]:
-        if not emp.get("active", True):
-            continue
+    all_names = get_all_names()
+    print(f"  Generating ICS for {len(all_names)} employees: {', '.join(all_names)}")
 
-        name = emp["name"]
+    for name in all_names:
         ics  = build_ics(events, name)
 
         filename = f"{OUTPUT_DIR}/{name.lower()}_schedule.ics"
@@ -408,6 +609,19 @@ def main():
         vacation_count = len([e for e in events if is_vacation(e, name)])
         override_count = len([e for e in events if "RECURRENCE-ID" in e and (is_oncall(e, name) or is_vacation(e, name))])
         print(f"  {name}: {oncall_count} on-call src events, {vacation_count} vacation, {override_count} overrides -> {filename}")
+
+    # Daily top-up: ensure 12 months of on-call always exists in the calendar
+    if use_graph:
+        cal_id = os.environ.get("GRAPH_CAL_ID", GRAPH_CALENDAR_ID)
+        active_emps = [e for e in CONFIG.get("employees", []) if e.get("active", True)]
+        if active_emps:
+            print("\nChecking 12-month on-call coverage...")
+            import traceback
+            try:
+                topup_oncall_calendar(token, cal_id, active_emps)
+            except Exception as e:
+                print(f"  Top-up error: {e}")
+                traceback.print_exc()
 
 
 if __name__ == "__main__":

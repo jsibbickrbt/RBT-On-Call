@@ -75,6 +75,16 @@
       "name": "Connor",
       "phone": "5197175047",
       "active": true
+    },
+    {
+      "name": "Ashton",
+      "phone": "519-732-5626",
+      "active": false
+    },
+    {
+      "name": "Austin",
+      "phone": "519-761-0387",
+      "active": false
     }
   ],
   "office": {

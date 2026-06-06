@@ -1,0 +1,11 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Mitchell Schedule//EN
+CALNAME:Mitchell Schedule
+X-WR-CALNAME:Mitchell Schedule
+X-WR-CALDESC:Mitchell on-call and vacation schedule — auto-updated daily from RBT calendar
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+REFRESH-INTERVAL;VALUE=DURATION:PT1H
+X-PUBLISHED-TTL:PT1H
+END:VCALENDAR

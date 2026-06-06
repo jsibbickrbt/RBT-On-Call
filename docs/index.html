@@ -311,6 +311,40 @@
   .cal-holiday-label  { font-size:0.72rem; color:#b45309; font-weight:600; margin-left:6px; background:#fef3c7; border:1px solid #fde68a; padding:1px 6px; border-radius:99px; }
   .holiday-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; background:#fef3c7; color:#92400e; border:1px solid #fde68a; padding:2px 8px; border-radius:99px; font-weight:600; cursor:pointer; white-space:nowrap; transition:background 0.15s; }
   .holiday-badge:hover { background:#fde68a; }
+
+  /* ── Update banner ── */
+  .update-banner { display:none; background:#1a2e14; color:white; padding:10px 20px; border-radius:10px; margin-bottom:16px; font-size:0.85rem; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .update-banner button { background:white; color:#1a2e14; border:none; padding:4px 12px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer; }
+
+  /* ── Month calendar ── */
+  .mcal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .mcal-title { font-size:1rem; font-weight:700; color:#1a2e14; }
+  .mcal-nav-btn { background:none; border:1px solid #d1d5db; border-radius:7px; padding:4px 12px; cursor:pointer; font-size:1rem; color:#374151; }
+  .mcal-nav-btn:hover { background:#f3f4f6; }
+  .mcal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .mcal-dow { text-align:center; font-size:0.72rem; font-weight:700; color:#6b7280; padding:4px 0; text-transform:uppercase; }
+  .mcal-day { min-height:120px; background:white; border:1px solid #e5e7eb; border-radius:6px; padding:6px; font-size:0.75rem; }
+  .mcal-day.other-month { background:#f9fafb; }
+  .mcal-day.today { border-color:#2d6a27; border-width:2px; }
+  .mcal-day-num { font-weight:700; color:#374151; margin-bottom:3px; font-size:0.78rem; }
+  .mcal-day.today .mcal-day-num { color:#2d6a27; }
+  .mcal-pill { font-size:0.68rem; font-weight:600; padding:1px 5px; border-radius:99px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; display:block; }
+  .mcal-pill.oncall  { background:#dcfce7; color:#166534; }
+  .mcal-pill.vacation{ background:#dbeafe; color:#1d4ed8; }
+  .mcal-pill.holiday { background:#fef3c7; color:#92400e; }
+  .mcal-legend { display:flex; gap:16px; margin-top:12px; font-size:0.78rem; }
+  .mcal-legend-item { display:flex; align-items:center; gap:5px; }
+  .mcal-loading { text-align:center; padding:40px; color:#9ca3af; font-size:0.875rem; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { display:none; margin-top:10px; }
+  .progress-wrap.show { display:block; }
+  .progress-bar-bg { background:#e5e7eb; border-radius:99px; height:10px; overflow:hidden; }
+  .progress-bar-fill { height:100%; border-radius:99px; transition:width 0.15s ease; width:0%; }
+  .progress-bar-fill.green  { background:#2d6a27; }
+  .progress-bar-fill.red    { background:#dc2626; }
+  .progress-label { font-size:0.78rem; color:#6b7280; margin-top:4px; text-align:right; }
+
   .rot-row-new      { background:#f0fdf4; }
   .rot-row-occupied { background:#fefce8; }
   .rot-row-skip     { background:#f9fafb; color:#9ca3af; }
@@ -343,6 +377,7 @@
 </head>
 <body>
 
+
 <!-- Nav -->
 <nav>
   <a class="nav-logo" href="#">
@@ -359,7 +394,9 @@
   </a>
   <div class="nav-divider"></div>
   <div class="nav-links">
-    <a href="#" class="active">On-Call Manager</a>
+    <a href="#" id="tab-cal-link" class="active" onclick="switchTab('calendar')">&#x1F4C5; Calendar</a>
+    <a href="#" id="tab-setup-link" onclick="switchTab('setup')">&#x2699; Setup</a>
+    <a href="#" id="tab-dir-link" onclick="switchTab('directory')">&#x1F4D2; Directory</a>
   </div>
 </nav>
 
@@ -389,38 +426,57 @@
     </div>
   </div>
 
-  <!-- Header -->
-  <div class="page-header">
-    <h1 class="page-title">On-Call Manager</h1>
-    <div class="page-actions">
-      <button class="btn-outline" id="refresh-btn" onclick="refreshCalendars()">🔄 Refresh Calendars</button>
-      <button class="btn-solid"   onclick="saveConfig()">Save Changes</button>
+  <!-- Update banner -->
+  <div class="update-banner" id="update-banner" style="display:none;">
+    <span id="update-banner-text">&#x1F195; New update available</span>
+    <div style="display:flex;gap:8px;">
+      <button onclick="location.reload()">Refresh Now</button>
+      <button onclick="dismissUpdate()" style="background:rgba(255,255,255,0.2);color:white;">Dismiss</button>
     </div>
   </div>
 
-  <!-- Employees -->
-  <div class="card">
-    <div class="card-title">👥 Employees</div>
-    <table>
-      <thead>
-        <tr>
-          <th style="width:36px;">#</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Active</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="emp-table"></tbody>
-    </table>
-    <button class="btn-add-emp" onclick="addEmployee()">+ Add Employee</button>
-    <div style="margin-top:12px;text-align:right;">
-      <button class="btn-sm orange" id="text-all-btn" onclick="sendTextAll()">💬 Test Text All</button>
+  <!-- ── CALENDAR TAB ── -->
+  <div id="tab-calendar">
+    <div class="page-header">
+      <h1 class="page-title">Team Calendar</h1>
+      <div class="page-actions">
+        <button class="mcal-nav-btn" onclick="changeMonth(-1)" style="font-size:1.1rem;padding:6px 16px;">&#x276E;</button>
+        <span id="mcal-title" style="font-size:1.1rem;font-weight:700;color:#1a2e14;min-width:180px;text-align:center;">Loading...</span>
+        <button class="mcal-nav-btn" onclick="changeMonth(1)" style="font-size:1.1rem;padding:6px 16px;">&#x276F;</button>
+      </div>
+    </div>
+    <div style="background:white;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+      <div class="mcal-grid" id="mcal-grid" style="gap:3px;">
+        <div class="mcal-loading">&#x23F3; Loading calendar...</div>
+      </div>
+      <div class="mcal-legend" style="margin-top:16px;">
+        <div class="mcal-legend-item"><span class="mcal-pill oncall" style="display:inline-block;">On Call</span></div>
+        <div class="mcal-legend-item"><span class="mcal-pill vacation" style="display:inline-block;">Vacation</span></div>
+        <div class="mcal-legend-item"><span class="mcal-pill holiday" style="display:inline-block;">&#x1F341; Stat Holiday</span></div>
+      </div>
     </div>
   </div>
 
-  <!-- Rotation Planner -->
-  <div class="card">
+  <!-- ── SETUP TAB ── -->
+  <div id="tab-setup" style="display:none;">
+    <div class="page-header">
+      <h1 class="page-title">Setup</h1>
+      <div class="page-actions">
+        <button class="btn-sm orange" id="text-all-btn" onclick="sendTextAll()">&#x1F4AC; Test Text All</button>
+        <button class="btn-outline" id="refresh-btn" onclick="refreshCalendars()">&#x1F504; Refresh Calendars</button>
+        <button class="btn-solid" onclick="saveConfig()">Save Changes</button>
+      </div>
+    </div>
+
+    <!-- Rotation Orders -->
+    <div class="card" id="rotation-orders-card" style="display:none;">
+      <div class="card-title">&#x1F501; Annual Rotation Orders</div>
+      <p style="font-size:0.82rem;color:#6b7280;margin-bottom:14px;">Order reshuffles each Jan 1. New employees are appended to that year's order.</p>
+      <div id="rotation-orders-body"></div>
+    </div>
+
+    <!-- Rotation Planner -->
+    <div class="card">
     <div class="card-title">&#x1F501; Rotation Planner</div>
     <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">
       Fills empty on-call days in Outlook for the next 7 months. Skips days already assigned. Clears nothing past Jan 31, 2028.
@@ -449,7 +505,18 @@
       </div>
       <button class="btn-sm blue" onclick="previewRotation()">&#x1F441; Preview</button>
       <button class="btn-sm green" id="rot-push-btn" onclick="pushRotation()" style="display:none;">&#x2B06; Push to Outlook</button>
-      <button class="btn-sm orange" id="rot-rebalance-btn" onclick="rebalanceRotation()">&#x2696; Rebalance</button>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;">
+      <div class="field">
+        <label class="field-label">Rebalance from date</label>
+        <input type="date" id="rebalance-from" style="max-width:160px;" />
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding-top:20px;">
+        <input type="checkbox" id="rebalance-shuffle" style="width:16px;height:16px;cursor:pointer;" />
+        <label for="rebalance-shuffle" style="font-size:0.82rem;color:#374151;cursor:pointer;">Shuffle order</label>
+      </div>
+      <button class="btn-sm orange" id="rot-rebalance-btn" onclick="rebalanceRotation()">&#x2696; Rebalance from Date</button>
+      <span style="font-size:0.78rem;color:#6b7280;">Clears all events from selected date forward and rebuilds with active employees</span>
     </div>
     <div id="rot-preview" style="display:none;">
       <div style="font-size:0.8rem;color:#6b7280;margin-bottom:8px;" id="rot-summary"></div>
@@ -467,6 +534,10 @@
       </div>
     </div>
     <div id="rot-status" style="font-size:0.85rem;margin-top:10px;"></div>
+    <div class="progress-wrap" id="rot-progress">
+      <div class="progress-bar-bg"><div class="progress-bar-fill green" id="rot-bar"></div></div>
+      <div class="progress-label" id="rot-bar-label"></div>
+    </div>
 
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;" />
 
@@ -484,10 +555,39 @@
       <button class="btn-danger-sm" id="clear-btn" onclick="clearOncallEvents()" style="padding:8px 16px;font-size:0.85rem;">&#x1F5D1; Clear Range</button>
     </div>
     <div id="clear-status" style="font-size:0.85rem;margin-top:10px;"></div>
+    <div class="progress-wrap" id="clear-progress">
+      <div class="progress-bar-bg"><div class="progress-bar-fill red" id="clear-bar"></div></div>
+      <div class="progress-label" id="clear-bar-label"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;" />
+
+    <div style="font-size:0.875rem;font-weight:600;color:#1a2e14;margin-bottom:10px;">&#x1F4BE; Calendar Backup</div>
+    <p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">Auto-saved before every push, rebalance, or clear. Select a version to see what changed and restore if needed.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+      <button class="btn-sm green" onclick="manualBackup()">&#x1F4BE; Backup Now</button>
+      <button class="btn-sm blue" onclick="loadBackupHistory()">&#x1F4CB; Load History</button>
+    </div>
+    <div id="backup-history-wrap" style="display:none;margin-bottom:10px;">
+      <select id="backup-version-select" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.82rem;width:100%;max-width:500px;">
+        <option value="">— Select a backup version —</option>
+      </select>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <button class="btn-sm blue" onclick="previewBackupDiff()">&#x1F50D; What Changed?</button>
+        <button class="btn-sm orange" id="restore-btn" onclick="restoreCalendar()">&#x21BA; Restore This Version</button>
+      </div>
+      <div id="backup-diff" style="margin-top:10px;font-size:0.82rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;display:none;max-height:200px;overflow-y:auto;"></div>
+    </div>
+    <div id="backup-status" style="font-size:0.85rem;margin-top:4px;"></div>
+    <div class="progress-wrap" id="restore-progress">
+      <div class="progress-bar-bg"><div class="progress-bar-fill green" id="restore-bar"></div></div>
+      <div class="progress-label" id="restore-bar-label"></div>
+    </div>
+    <div id="backup-info" style="font-size:0.78rem;color:#6b7280;margin-top:4px;"></div>
   </div>
 
-  <!-- Office -->
-  <div class="card">
+    <!-- Office -->
+    <div class="card">
     <div class="card-title">🏢 Office Notification</div>
     <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">Receives a daily text listing everyone on call.</p>
     <div class="office-row">
@@ -509,9 +609,72 @@
         <button class="btn-sm" id="conflict-btn" onclick="checkConflicts()" style="background:#fefce8;color:#854d0e;border-color:#fde047;">⚠️ Check Conflicts</button>
       </div>
     </div>
-  </div>
+    </div><!-- end Office card -->
 
-</div>
+  </div><!-- end tab-setup -->
+
+  <!-- ── DIRECTORY TAB ── -->
+  <div id="tab-directory" style="display:none;margin-left:calc(-50vw + 50%);margin-right:calc(-50vw + 50%);padding:0 24px;">
+    <div class="page-header">
+      <h1 class="page-title">Company Directory</h1>
+      <div class="page-actions">
+        <input type="text" id="dir-search" placeholder="Search name or number..." oninput="filterDirectory()" style="padding:7px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;width:220px;" />
+        <button class="btn-solid" onclick="saveConfig()">Save Changes</button>
+      </div>
+    </div>
+    <div id="dir-save-notice" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:10px 16px;margin-bottom:12px;font-size:0.85rem;color:#854d0e;">
+      &#x26A0; You have unsaved changes — click <strong>Save Changes</strong> to apply.
+    </div>
+    <div class="card">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">#</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Name</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Phone</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Ext.</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Role</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">On-Call</th>
+            <th style="text-align:left;padding:8px 12px;font-size:0.75rem;color:#6b7280;border-bottom:2px solid #e5e7eb;">Calendar</th>
+            <th style="width:40px;border-bottom:2px solid #e5e7eb;"></th>
+          </tr>
+        </thead>
+        <tbody id="dir-all-body"></tbody>
+      </table>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;">
+        <button class="btn-add-emp" onclick="dirShowAddForm()">+ Add Person</button>
+        <span id="dir-add-status" style="font-size:0.82rem;color:#6b7280;"></span>
+      </div>
+      <!-- Add person form -->
+      <div id="dir-add-form" style="display:none;margin-top:14px;padding:16px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <div class="field"><label class="field-label">Full Name (ALL CAPS)</label><input type="text" id="dir-new-name" placeholder="JOHN SMITH" style="max-width:180px;" /></div>
+          <div class="field"><label class="field-label">Phone</label><input type="text" id="dir-new-phone" placeholder="519-555-1234" style="max-width:150px;" /></div>
+          <div class="field"><label class="field-label">Type</label>
+            <select id="dir-new-type" onchange="dirUpdateRoles()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;">
+              <option value="field">Field</option>
+              <option value="office">Office</option>
+            </select>
+          </div>
+          <div class="field"><label class="field-label">Role</label>
+            <select id="dir-new-dept" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:0.875rem;min-width:160px;">
+              <option>ELECTRICIAN</option>
+              <option>APPRENTICE</option>
+              <option>GENERAL LABORER</option>
+              <option>FOREMAN</option>
+            </select>
+          </div>
+          <div class="field" id="dir-ext-field" style="display:none;"><label class="field-label">Ext.</label><input type="text" id="dir-new-ext" placeholder="101" style="max-width:80px;" /></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm green" onclick="dirAddPerson()">Add</button>
+          <button class="btn-sm gray" onclick="dirHideAddForm()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div><!-- end tab-directory -->
+
+</div><!-- end page -->
 
 <!-- Calendar Modal -->
 <div class="modal-overlay" id="cal-modal" onclick="if(event.target===this)closeModal()">
@@ -537,10 +700,270 @@
 const REPO     = "jsibbickrbt/RBT-On-Call";
 const BASE_URL = "https://jsibbickrbt.github.io/RBT-On-Call";
 
+const TAB_LINK_IDS = { calendar: "tab-cal-link", setup: "tab-setup-link", directory: "tab-dir-link" };
+
+function switchTab(tab) {
+  ["calendar","setup","directory"].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = tab === t ? "block" : "none";
+    document.getElementById(TAB_LINK_IDS[t]).classList.toggle("active", tab === t);
+  });
+  document.querySelector(".save-bar").style.display = tab === "setup" ? "flex" : "none";
+  localStorage.setItem("rbt_active_tab", tab);
+
+  if (tab === "calendar") {
+    mcalLoaded = false; initCalendar();
+  } else if (tab === "setup") {
+    loadConfig().then(() => { checkAllConflicts(); initRotationPlanner(); });
+  } else if (tab === "directory") {
+    loadDirectory();
+  }
+}
+
+// ── Directory ─────────────────────────────────────────────────────────────────
+let directoryData = null;
+
+async function loadDirectory() {
+  if (directoryData) { renderDirectory(directoryData); return; }
+  try {
+    const r = await fetch(`${BASE_URL}/directory.json?cb=${Date.now()}`);
+    directoryData = await r.json();
+    renderDirectory(directoryData);
+  } catch(e) {
+    document.getElementById("dir-all-body").innerHTML = `<tr><td colspan="6" style="padding:20px;color:#dc2626;">Failed to load directory.</td></tr>`;
+  }
+}
+
+function renderDirectory(data, filter = "") {
+  const f = filter.toLowerCase();
+  // Build set of on-call rotation members (first name match)
+  const oncallNames = new Set((config.employees || []).map(e => e.name.toLowerCase()));
+  const oncallActive = new Set((config.employees || []).filter(e => e.active !== false).map(e => e.name.toLowerCase()));
+
+  const fieldEmps  = (data.field_employees  || []).map(e => ({ ...e, ext: "", _section: "field"  })).filter(e => !f || e.name.toLowerCase().includes(f) || e.phone.includes(f));
+  const officeEmps = (data.office_employees || []).map(e => ({ ...e, _section: "office" })).filter(e => !f || e.name.toLowerCase().includes(f) || e.phone.includes(f));
+  const all = [...fieldEmps, ...officeEmps];
+
+  const fieldHeader  = fieldEmps.length  ? `<tr><td colspan="8" style="padding:6px 12px;background:#f0fdf4;font-size:0.72rem;font-weight:700;color:#2d6a27;letter-spacing:0.06em;border-bottom:1px solid #bbf7d0;">&#x1F477; FIELD EMPLOYEES</td></tr>` : "";
+  const sep = officeEmps.length ? `<tr><td colspan="8" style="padding:6px 12px;background:#f0fdf4;font-size:0.72rem;font-weight:700;color:#2d6a27;letter-spacing:0.06em;border-top:2px solid #bbf7d0;border-bottom:1px solid #bbf7d0;">&#x1F3E2; OFFICE &amp; AUTOMATION</td></tr>` : "";
+
+  document.getElementById("dir-all-body").innerHTML = fieldHeader + all.map((e, i) => {
+    const insertSep = e._section === "office" && (i === 0 || all[i-1]._section === "field") ? sep : "";
+    const firstName  = e.name.split(" ")[0];
+    const firstLower = firstName.toLowerCase();
+    const empIdx     = (config.employees || []).findIndex(emp => emp.name.toLowerCase() === firstLower);
+    const emp        = empIdx >= 0 ? config.employees[empIdx] : null;
+    const isActive   = emp && emp.active !== false;
+    const icsUrl     = `${BASE_URL}/${firstLower}_schedule.ics`;
+    const webcal     = icsUrl.replace("https://","webcal://");
+
+    const oncallBadge = emp
+      ? `<label class="toggle" title="${isActive?"Click to deactivate":"Click to activate"}">
+           <input type="checkbox" ${isActive?"checked":""} onchange="dirToggleActive('${firstName}',this.checked)" />
+           <span class="slider"></span>
+         </label>`
+      : `<button class="btn-sm green" style="font-size:0.7rem;padding:3px 10px;" onclick="dirAddToRotation('${e.name}','${e.phone}')">+ Add</button>`;
+
+    // Calendar links for everyone — ICS is generated for all directory employees
+    const calLinks = `
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button class="btn-sm gray" style="font-size:0.7rem;padding:3px 8px;" onclick="navigator.clipboard.writeText('${icsUrl}')">&#x1F4CB; Copy</button>
+        <a class="btn-sm blue" style="font-size:0.7rem;padding:3px 8px;text-decoration:none;" href="${webcal}">&#x1F4F2; Subscribe</a>
+        ${empIdx >= 0 ? `<button class="btn-sm orange" style="font-size:0.7rem;padding:3px 8px;" onclick="sendTestText(${empIdx},'${firstName}')">&#x1F4AC; Test</button>
+        <button class="btn-sm green" style="font-size:0.7rem;padding:3px 8px;" onclick="sendCalendarLink(${empIdx},'${firstName}')">&#x1F4C5; Send</button>` : ""}
+        <button class="btn-sm blue" style="font-size:0.7rem;padding:3px 8px;" onclick="viewCalendar('${firstName}')">&#x1F4C6; View</button>
+      </div>`;
+
+    const sec    = e._section;
+    const roles  = sec === "field" ? ["ELECTRICIAN","APPRENTICE","GENERAL LABORER","FOREMAN"] : ["OFFICE","AUTOMATION","PROJECT MANAGER","ESTIMATOR"];
+    const roleOpts = roles.map(r => `<option${r===e.department?" selected":""}>${r}</option>`).join("");
+    return insertSep + `<tr style="${i%2===1?"background:#f9fafb":""}">
+      <td style="padding:8px 12px;font-size:0.82rem;color:#9ca3af;">${i+1}</td>
+      <td style="padding:6px 12px;">
+        <input value="${e.name}" onchange="dirEditField('${e.name}','name',this.value,'${sec}')"
+          style="font-size:0.875rem;font-weight:600;border:1px solid transparent;border-radius:5px;padding:3px 6px;width:100%;min-width:130px;background:transparent;"
+          onfocus="this.style.borderColor='#2d6a27';this.style.background='white'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'" />
+      </td>
+      <td style="padding:6px 12px;">
+        <input value="${e.phone}" onchange="dirEditField('${e.name}','phone',this.value,'${sec}')"
+          style="font-size:0.875rem;color:#2d6a27;border:1px solid transparent;border-radius:5px;padding:3px 6px;width:100%;min-width:110px;background:transparent;"
+          onfocus="this.style.borderColor='#2d6a27';this.style.background='white'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'" />
+      </td>
+      <td style="padding:6px 12px;font-size:0.875rem;color:#6b7280;">${e.ext || "—"}</td>
+      <td style="padding:6px 12px;">
+        <select onchange="dirEditField('${e.name}','department',this.value,'${sec}')"
+          style="font-size:0.78rem;border:1px solid transparent;border-radius:5px;padding:3px 6px;background:transparent;color:#6b7280;cursor:pointer;"
+          onfocus="this.style.borderColor='#2d6a27';this.style.background='white'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'">
+          ${roleOpts}
+        </select>
+      </td>
+      <td style="padding:8px 12px;">${oncallBadge}</td>
+      <td style="padding:6px 12px;">${calLinks}</td>
+      <td style="padding:6px 12px;"><button class="btn-danger-sm" onclick="dirDeletePerson('${e.name}')" title="Remove from directory">✕</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="7" style="padding:16px;color:#9ca3af;text-align:center;">No results</td></tr>`;
+}
+
+function filterDirectory() {
+  if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
+}
+
+async function dirEditField(oldName, field, value, section) {
+  const list = section === "field" ? directoryData.field_employees : directoryData.office_employees;
+  const idx  = list.findIndex(e => e.name === oldName);
+  if (idx < 0) return;
+  list[idx][field] = field === "name" ? value.toUpperCase() : value;
+  // If name changed, update on-call config too
+  if (field === "name") {
+    const oldFirst = oldName.split(" ")[0];
+    const newFirst = value.split(" ")[0];
+    const empIdx = (config.employees || []).findIndex(e => e.name.toLowerCase() === oldFirst.toLowerCase());
+    if (empIdx >= 0) config.employees[empIdx].name = newFirst.charAt(0).toUpperCase() + newFirst.slice(1).toLowerCase();
+  }
+  const notice = document.getElementById("dir-add-status");
+  notice.textContent = "Saving...";
+  const ok = await saveConfigSilent();
+  await saveDirectory();
+  notice.textContent = ok ? "" : "❌ Failed to save config";
+}
+
+function dirUpdateRoles() {
+  const type = document.getElementById("dir-new-type").value;
+  const sel  = document.getElementById("dir-new-dept");
+  const fieldRoles  = ["ELECTRICIAN","APPRENTICE","GENERAL LABORER","FOREMAN"];
+  const officeRoles = ["OFFICE","AUTOMATION","PROJECT MANAGER","ESTIMATOR"];
+  const roles = type === "field" ? fieldRoles : officeRoles;
+  sel.innerHTML = roles.map(r => `<option>${r}</option>`).join("");
+  document.getElementById("dir-ext-field").style.display = type === "office" ? "block" : "none";
+}
+
+function dirShowAddForm() {
+  document.getElementById("dir-add-form").style.display = "block";
+  dirUpdateRoles();
+  document.getElementById("dir-new-name").focus();
+}
+function dirHideAddForm() {
+  document.getElementById("dir-add-form").style.display = "none";
+  ["dir-new-name","dir-new-phone","dir-new-dept","dir-new-ext"].forEach(id => document.getElementById(id).value = "");
+}
+
+async function dirAddPerson() {
+  const name  = document.getElementById("dir-new-name").value.trim().toUpperCase();
+  const phone = document.getElementById("dir-new-phone").value.trim();
+  const dept  = document.getElementById("dir-new-dept").value.trim().toUpperCase();
+  const type  = document.getElementById("dir-new-type").value;
+  const ext   = document.getElementById("dir-new-ext").value.trim() || "N/A";
+  if (!name || !phone) { alert("Name and phone are required."); return; }
+  if (type === "field") {
+    directoryData.field_employees.push({ name, phone, department: dept || "FIELD" });
+  } else {
+    directoryData.office_employees.push({ name, phone, ext, department: dept || "OFFICE" });
+  }
+  // Offer to add to on-call rotation
+  const firstName = name.split(" ")[0];
+  const firstNameTitle = firstName.charAt(0) + firstName.slice(1).toLowerCase(); // Title case
+  const addToRotation = confirm(`Add ${firstNameTitle} to the on-call rotation?`);
+  if (addToRotation) {
+    if (!config.employees) config.employees = [];
+    if (!config.employees.some(e => e.name.toLowerCase() === firstName.toLowerCase())) {
+      config.employees.push({ name: firstNameTitle, phone, active: true });
+    }
+  }
+  dirHideAddForm();
+  renderDirectory(directoryData, document.getElementById("dir-search").value);
+
+  const notice = document.getElementById("dir-add-status");
+  notice.textContent = "Saving directory...";
+  await saveDirectory();
+
+  if (addToRotation) {
+    notice.textContent = "Saving on-call config...";
+    await saveConfig();
+  }
+  notice.textContent = "✅ Saved!";
+  setTimeout(() => notice.textContent = "", 3000);
+}
+
+function dirDeletePerson(fullName) {
+  if (!confirm(`Remove ${fullName} from the directory?`)) return;
+  directoryData.field_employees  = (directoryData.field_employees  || []).filter(e => e.name !== fullName);
+  directoryData.office_employees = (directoryData.office_employees || []).filter(e => e.name !== fullName);
+  renderDirectory(directoryData, document.getElementById("dir-search").value);
+  saveDirectory();
+}
+
+async function saveDirectory() {
+  const ghToken = document.getElementById("gh-token").value;
+  if (!ghToken) { document.getElementById("dir-add-status").textContent = "❌ Admin login required to save."; return; }
+  document.getElementById("dir-add-status").textContent = "Saving...";
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/directory.json`,
+      { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
+    const existing = await r.json();
+    const content = btoa(encodeURIComponent(JSON.stringify(directoryData, null, 2)).replace(/%([0-9A-F]{2})/g, (_,p) => String.fromCharCode(parseInt(p,16))));
+    const resp = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/directory.json`, {
+      method: "PUT",
+      headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Update directory", content, sha: existing.sha })
+    });
+    document.getElementById("dir-add-status").textContent = resp.ok ? "✅ Directory saved!" : "❌ Save failed";
+    setTimeout(() => document.getElementById("dir-add-status").textContent = "", 3000);
+  } catch(e) {
+    document.getElementById("dir-add-status").textContent = "❌ " + e.message;
+  }
+}
+
+async function saveConfigSilent() {
+  const ghToken = document.getElementById("gh-token").value;
+  if (!ghToken) return false;
+  try {
+    const newConfig = collectConfig();
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(newConfig, null, 2))));
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json?_=${Date.now()}`,
+      { cache:"no-store", headers:{ Authorization:`token ${ghToken}`, Accept:"application/vnd.github+json" } });
+    const data = await r.json();
+    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json`, {
+      method:"PUT",
+      headers:{ Authorization:`token ${ghToken}`, Accept:"application/vnd.github+json", "Content-Type":"application/json" },
+      body: JSON.stringify({ message:"Update on-call config", content, sha: data.sha })
+    });
+    if (res.ok) { config = newConfig; return true; }
+    return false;
+  } catch { return false; }
+}
+
+async function dirToggleActive(firstName, active) {
+  const idx = (config.employees || []).findIndex(e => e.name.toLowerCase() === firstName.toLowerCase());
+  if (idx < 0) return;
+  config.employees[idx].active = active;
+  if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
+  initRotationPlanner(); // update active count in rotation planner
+  const notice = document.getElementById("dir-save-notice");
+  notice.textContent = "Saving..."; notice.style.display = "block"; notice.style.background = "#f0fdf4"; notice.style.color = "#166534"; notice.style.borderColor = "#bbf7d0";
+  const ok = await saveConfigSilent();
+  if (ok) { notice.textContent = "✅ Saved!"; setTimeout(() => { notice.style.display = "none"; notice.textContent = "⚠️ You have unsaved changes — click Save Changes to apply."; notice.style.background = ""; notice.style.color = ""; notice.style.borderColor = ""; }, 2000); }
+  else { notice.style.background = "#fef2f2"; notice.style.color = "#dc2626"; notice.style.borderColor = "#fecaca"; notice.textContent = "❌ Save failed — click Save Changes to retry."; }
+}
+
+async function dirAddToRotation(fullName, phone) {
+  const firstName = fullName.split(" ")[0];
+  if ((config.employees || []).some(e => e.name.toLowerCase() === firstName.toLowerCase())) return;
+  if (!config.employees) config.employees = [];
+  config.employees.push({ name: firstName, phone, active: true });
+  if (directoryData) renderDirectory(directoryData, document.getElementById("dir-search").value);
+  const notice = document.getElementById("dir-save-notice");
+  notice.textContent = "Saving..."; notice.style.display = "block";
+  const ok = await saveConfigSilent();
+  notice.style.display = ok ? "none" : "block";
+}
+
 let config = {};
 
 function renderEmployees() {
   const tbody = document.getElementById("emp-table");
+  if (!tbody) return;
   tbody.innerHTML = "";
   (config.employees || []).forEach((emp, i) => {
     const icsUrl = `${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics`;
@@ -569,10 +992,9 @@ function renderEmployees() {
       <tr class="ics-row" id="ics-row-${i}">
         <td colspan="4">
           <div class="ics-box">
-            <label>📅 ICS:</label>
-            <input type="text" id="ics-url-${i}" value="${icsUrl}" readonly onclick="this.select()" />
-            <button class="btn-sm gray"   onclick="copyIcs(${i})" id="copy-btn-${i}">Copy</button>
-            <a class="btn-sm blue" id="ics-open-${i}" href="${webcal}" style="text-decoration:none;">📲 Subscribe</a>
+            <input type="hidden" id="ics-url-${i}" value="${icsUrl}" />
+            <button class="btn-sm gray"   onclick="copyIcs(${i})" id="copy-btn-${i}">&#x1F4CB; Copy ICS</button>
+            <a class="btn-sm blue" id="ics-open-${i}" href="${webcal}" style="text-decoration:none;">&#x1F4F2; Subscribe</a>
             <button class="btn-sm orange" id="test-btn-${i}" onclick="sendTestText(${i}, '${emp.name}')">💬 Test</button>
             <button class="btn-sm green"  id="cal-btn-${i}"  onclick="sendCalendarLink(${i}, '${emp.name}')">📅 Send Link</button>
             <button class="btn-sm blue"   onclick="viewCalendar('${emp.name}')">📆 View</button>
@@ -603,17 +1025,14 @@ function removeEmployee(i) {
 }
 
 function collectConfig() {
-  const employees = (config.employees || []).map((_, i) => ({
-    name:   document.getElementById(`emp-name-${i}`).value.trim(),
-    phone:  document.getElementById(`emp-phone-${i}`).value.trim(),
-    active: document.getElementById(`emp-active-${i}`).checked,
-  }));
+  // Employees are managed via directory toggles — use in-memory config directly
+  const employees = (config.employees || []);
   return {
     ...config,
     employees,
     office: {
-      phone:  document.getElementById("office-phone").value.trim(),
-      active: document.getElementById("office-active").checked,
+      phone:  document.getElementById("office-phone")?.value.trim()  || config.office?.phone  || "",
+      active: document.getElementById("office-active")?.checked      ?? config.office?.active ?? false,
     }
   };
 }
@@ -638,8 +1057,7 @@ async function refreshCalendars() {
       { method:"POST", headers:{"Authorization":`Bearer ${token}`,"Content-Type":"application/json","Accept":"application/vnd.github+json"}, body:JSON.stringify({ref:"main",inputs:{}}) }
     );
     if (resp.status === 204) {
-      setStatus("✅ Calendar refresh triggered — reloading in 3s…", "ok");
-      setTimeout(() => location.reload(), 3000);
+      setStatus("✅ Calendar refresh triggered — updating in ~2 min", "ok");
     } else {
       const err = await resp.json().catch(() => ({}));
       throw new Error(err.message || `HTTP ${resp.status}`);
@@ -668,9 +1086,14 @@ async function saveConfig() {
       body:JSON.stringify({message:"Update config via web UI",content,sha:data.sha})
     });
     if (res.ok) {
-      setStatus("✅ Saved! Reloading in 3s…", "ok");
       config = newConfig;
-      setTimeout(() => location.reload(), 3000);
+      setStatus("✅ Saved!", "ok");
+      document.getElementById("dir-save-notice").style.display = "none";
+      renderEmployees();
+      renderOffice();
+      initRotationPlanner();
+      if (directoryData) renderDirectory(directoryData);
+      checkAllConflicts();
     } else {
       const err = await res.json();
       setStatus("❌ " + (err.message || "Unknown error"), "err");
@@ -735,14 +1158,15 @@ async function submitAdminLogin() {
     try {
       const token = await decryptToken(pw, stored);
       document.getElementById("gh-token").value = token;
+      sessionStorage.setItem("rbt_session_token", token);
       // Auto-decrypt MS credentials if stored
       const encRt = localStorage.getItem("rbt_enc_ms_rt");
       const encSec = localStorage.getItem("rbt_enc_ms_sec");
       if (encRt)  window._msRefreshToken  = await decryptToken(pw, encRt);
       if (encSec) window._msClientSecret  = await decryptToken(pw, encSec);
-      document.getElementById("admin-login-btn").textContent = "✅ Admin";
-      document.getElementById("admin-login-btn").classList.add("logged-in");
+      setAdminLoggedIn();
       closeAdminModal();
+      setTimeout(loadBackupInfo, 500);
     } catch {
       document.getElementById("admin-error").textContent = "Incorrect password.";
       document.getElementById("admin-error").style.display = "block";
@@ -754,9 +1178,23 @@ async function submitAdminLogin() {
     const enc = await encryptToken(pw, ghToken);
     localStorage.setItem("rbt_enc_token", enc);
     document.getElementById("gh-token").value = ghToken;
-    document.getElementById("admin-login-btn").textContent = "✅ Admin";
-    document.getElementById("admin-login-btn").classList.add("logged-in");
+    sessionStorage.setItem("rbt_session_token", ghToken);
+    setAdminLoggedIn();
     closeAdminModal();
+  }
+}
+
+function setAdminLoggedIn() {
+  document.getElementById("admin-login-btn").textContent = "✅ Admin";
+  document.getElementById("admin-login-btn").classList.add("logged-in");
+}
+
+function restoreAdminSession() {
+  const saved = sessionStorage.getItem("rbt_session_token");
+  if (saved) {
+    document.getElementById("gh-token").value = saved;
+    setAdminLoggedIn();
+    setTimeout(loadBackupInfo, 500);
   }
 }
 
@@ -772,6 +1210,7 @@ async function saveMsCredentials(password, refreshToken, clientSecret) {
 function logoutAdmin() {
   if (!confirm("Log out of admin?")) return;
   document.getElementById("gh-token").value = "";
+  sessionStorage.removeItem("rbt_session_token");
   document.getElementById("admin-login-btn").textContent = "🔒 Admin Login";
   document.getElementById("admin-login-btn").classList.remove("logged-in");
 }
@@ -1130,20 +1569,49 @@ async function loadConfigAndCheck() {
   await loadConfig();
   checkAllConflicts();
   initRotationPlanner();
+  initCalendar();
+  loadRotationOrders();
 }
 
 // ── Rotation Planner ─────────────────────────────────────────────────────────
 
 const MS_CLIENT_ID  = "619ba349-9370-4f9d-a40a-832f3d43918b";
 const MS_TENANT_ID  = "c6742b62-ae1e-422e-8ade-06070424f6b6";
-const GRAPH_CAL_ID  = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAAHInXdAAA=";
+// Production: RBT WORK CALENDAR
+const GRAPH_CAL_ID      = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAAHInXdAAA=";
+const GRAPH_VIEW_CAL_ID = GRAPH_CAL_ID;
 let graphAccessToken = null;
+
+async function loadRotationOrders() {
+  try {
+    const r = await fetch(`${BASE_URL}/rotation_orders.json?cb=${Date.now()}`);
+    if (!r.ok) return;
+    const orders = await r.json();
+    const thisYear = new Date().getFullYear();
+    const years = [thisYear, thisYear + 1].filter(y => orders[String(y)]);
+    if (!years.length) return;
+    const card = document.getElementById("rotation-orders-card");
+    const body = document.getElementById("rotation-orders-body");
+    card.style.display = "block";
+    body.innerHTML = years.map(y => {
+      const order = orders[String(y)];
+      return `<div style="margin-bottom:16px;">
+        <div style="font-size:0.82rem;font-weight:700;color:#1a2e14;margin-bottom:8px;">&#x1F4C5; ${y} Rotation Order</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${order.map((name, i) => `<span style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:3px 10px;font-size:0.78rem;font-weight:600;color:#166534;">${i+1}. ${name}</span>`).join("")}
+        </div>
+      </div>`;
+    }).join("");
+  } catch {}
+}
 
 function initRotationPlanner() {
   const activeEmps = (config.employees || []).filter(e => e.active !== false);
   document.getElementById("rot-emp-count").textContent = activeEmps.length;
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
   document.getElementById("rot-start").value = tomorrow.toISOString().slice(0,10);
+  if (!document.getElementById("rebalance-from").value)
+    document.getElementById("rebalance-from").value = new Date().toISOString().slice(0,10);
   // Show connected status if refresh token cached
   if (localStorage.getItem("rbt_ms_rt_plain")) {
     document.getElementById("outlook-status").textContent = "✅ Connected to Outlook";
@@ -1275,6 +1743,54 @@ async function getGraphToken() {
   return null;
 }
 
+function setProgress(barId, wrapId, labelId, current, total, extra) {
+  const pct = total ? Math.round((current / total) * 100) : 0;
+  const wrap = document.getElementById(wrapId);
+  const bar  = document.getElementById(barId);
+  const lbl  = document.getElementById(labelId);
+  if (!wrap) return;
+  wrap.classList.add("show");
+  bar.style.width = pct + "%";
+  lbl.textContent = `${current} / ${total} (${pct}%)${extra ? "  " + extra : ""}`;
+}
+
+function hideProgress(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (wrap) setTimeout(() => wrap.classList.remove("show"), 2000);
+}
+
+async function checkDuplicateOncall(token, statusEl) {
+  if (!token) return;
+  const today = new Date().toISOString().slice(0,10);
+  const end = new Date(); end.setMonth(end.getMonth()+12);
+  let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+          + `?startDateTime=${today}T00:00:00&endDateTime=${end.toISOString().slice(0,10)}T00:00:00`
+          + `&$top=999&$select=subject,start`;
+  const evs = [];
+  while (url) {
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    (d.value || []).forEach(e => evs.push(e));
+    url = d["@odata.nextLink"] || null;
+  }
+  const dateMap = {};
+  evs.forEach(ev => {
+    const s = (ev.subject || "").toLowerCase();
+    if (!(s.includes("on call") || s.includes("oncall")) || s.includes("vacation")) return;
+    const dt = ev.start?.date || ev.start?.dateTime?.slice(0,10);
+    if (!dt) return;
+    if (!dateMap[dt]) dateMap[dt] = [];
+    dateMap[dt].push(ev.subject);
+  });
+  const dupes = Object.entries(dateMap).filter(([,names]) => names.length > 1);
+  if (dupes.length > 0) {
+    const list = dupes.slice(0,10).map(([d, names]) => `${d}: ${names.join(" & ")}`).join("\n");
+    if (statusEl) statusEl.textContent = `⚠️ ${dupes.length} day(s) with multiple people on call!`;
+    alert(`⚠️ ${dupes.length} day(s) have multiple people on call:\n\n${list}${dupes.length>10?"\n...and more":""}\n\nPlease fix the calendar.`);
+  }
+  return dupes;
+}
+
 // Generate rotation schedule
 function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedDates) {
   const CLEAR_AFTER = "2028-01-31";
@@ -1283,17 +1799,19 @@ function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedD
   const n = activeEmps.length;
   if (!n) return schedule;
 
-  // Determine shift: if rotDays >= 14 and employees >= 14, shift start day each full cycle
-  const shouldShift = rotDays >= 14 || n >= 14;
-  const shiftDays   = shouldShift ? 1 : 0;
+  // When active employee count is a multiple of 7 (7, 14, 21, 28...),
+  // the cycle aligns perfectly with full weeks so everyone always lands
+  // on the same weekday. Fix: shift who STARTS each cycle by 1 position
+  // so weekdays rotate — no gaps, no back-to-backs.
+  const needShift = n % 7 === 0;
 
   let d = startDate;
-  let empIdx = 0;
-  let rotCount = 0; // how many rotation blocks assigned
-  let cycleShift = 0; // accumulated day shift
+  let cycleStartIdx = 0;
+  let posInCycle    = 0;
 
   while (d <= endDate && d <= CLEAR_AFTER) {
-    const person = activeEmps[empIdx % n];
+    const empIdx = (cycleStartIdx + posInCycle) % n;
+    const person = activeEmps[empIdx];
 
     for (let i = 0; i < rotDays; i++) {
       const day = addDays(d, i);
@@ -1302,14 +1820,13 @@ function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedD
       schedule.push({ date: day, person: person.name, occupied });
     }
 
-    empIdx++;
-    rotCount++;
+    posInCycle++;
     d = addDays(d, rotDays);
 
-    // After one full cycle through all employees, apply shift
-    if (shouldShift && rotCount % n === 0) {
-      cycleShift += shiftDays;
-      d = addDays(d, shiftDays);
+    // After one full cycle, shift the starting person if count is multiple of 7
+    if (posInCycle >= n) {
+      posInCycle = 0;
+      if (needShift) cycleStartIdx = (cycleStartIdx + 1) % n;
     }
   }
   return schedule;
@@ -1323,7 +1840,7 @@ async function previewRotation() {
 
   // 7 months end date
   const end = new Date(startDate + "T00:00:00");
-  end.setMonth(end.getMonth() + 7);
+  end.setMonth(end.getMonth()+12);
   const endDate = end.toISOString().slice(0,10);
 
   document.getElementById("rot-status").textContent = "Building preview...";
@@ -1370,14 +1887,41 @@ async function pushRotation() {
   if (!schedule || !token) { alert("Please preview first."); return; }
   if (!confirm(`Push ${schedule.length} new on-call days to Outlook?`)) return;
 
+  const backupOkPush = await backupCalendar(true);
+  if (!backupOkPush && !confirm("⚠️ Backup failed. Continue pushing WITHOUT a backup?")) return;
   const btn = document.getElementById("rot-push-btn");
   btn.textContent = "Pushing..."; btn.disabled = true;
 
   const rotDays = parseInt(document.getElementById("rot-days").value);
   let pushed = 0, failed = 0;
 
-  for (const s of schedule) {
+  async function pushEvent(body, retries = 3) {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      const r = await fetch(`https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/events`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body
+      });
+      if (r.ok) return true;
+      if (r.status === 429) {
+        // Throttled — wait for Retry-After header or back off
+        const retryAfter = parseInt(r.headers.get("Retry-After") || "10") * 1000;
+        document.getElementById("rot-status").textContent = `Throttled by Outlook — waiting ${Math.round(retryAfter/1000)}s...`;
+        await new Promise(res => setTimeout(res, retryAfter));
+      } else {
+        const err = await r.json().catch(() => ({}));
+        console.error(`Push failed (${r.status}):`, err.error?.message);
+        return false;
+      }
+    }
+    return false;
+  }
+
+  for (let i = 0; i < schedule.length; i++) {
+    const s = schedule[i];
     const endDay = addDays(s.date, rotDays);
+    setProgress("rot-bar", "rot-progress", "rot-bar-label", i + 1, schedule.length, `${pushed} ✓ ${failed} ✗`);
+    document.getElementById("rot-status").textContent = `Pushing ${i+1} of ${schedule.length}...`;
     const body = JSON.stringify({
       subject:  `${s.person} On Call`,
       start:    { dateTime: `${s.date}T00:00:00`, timeZone: "America/Toronto" },
@@ -1385,30 +1929,21 @@ async function pushRotation() {
       isAllDay: true
     });
     try {
-      const r = await fetch(`https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/events`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body
-      });
-      if (r.ok) {
-        pushed++;
-      } else {
-        const err = await r.json();
-        console.error(`Push failed for ${s.person} on ${s.date}:`, err.error?.message || r.status);
-        failed++;
-      }
+      if (await pushEvent(body)) pushed++; else failed++;
     } catch(e) { console.error("Push exception:", e); failed++; }
-    // Small delay to avoid throttling
-    await new Promise(res => setTimeout(res, 100));
+    // Pace requests to stay under throttle limit
+    await new Promise(res => setTimeout(res, 250));
   }
 
   btn.textContent = "&#x2B06; Push to Outlook"; btn.disabled = false;
+  hideProgress("rot-progress");
   const pushMsg = `Done! ${pushed} of ${schedule.length} events pushed to Outlook${failed ? `, ${failed} failed` : ""}.`;
   document.getElementById("rot-status").textContent = pushMsg;
   alert(pushMsg);
+  await checkDuplicateOncall(token, document.getElementById("rot-status"));
 
   if (pushed > 0) {
-    // Trigger calendar refresh
+    mcalLoaded = false; initCalendar();
     const ghToken = document.getElementById("gh-token").value;
     if (ghToken) refreshCalendars();
   }
@@ -1418,117 +1953,359 @@ async function rebalanceRotation() {
   const token = await getGraphToken();
   if (!token) return;
 
-  const activeEmps   = (config.employees || []).filter(e => e.active !== false);
-  const inactiveNames = (config.employees || []).filter(e => e.active === false).map(e => e.name.toLowerCase());
-  const rotDays = parseInt(document.getElementById("rot-days").value) || 1;
+  let activeEmps = (config.employees || []).filter(e => e.active !== false);
+  const rotDays  = parseInt(document.getElementById("rot-days").value) || 1;
+  const shuffle  = document.getElementById("rebalance-shuffle").checked;
+  const fromDate = document.getElementById("rebalance-from").value;
+
+  // Shuffle order if requested (Fisher-Yates)
+  if (shuffle) {
+    activeEmps = [...activeEmps];
+    for (let i = activeEmps.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [activeEmps[i], activeEmps[j]] = [activeEmps[j], activeEmps[i]];
+    }
+  }
+
   const n = activeEmps.length;
 
-  if (!n) { alert("No active employees."); return; }
+  if (!n)        { alert("No active employees."); return; }
+  if (!fromDate) { alert("Please select a rebalance start date."); return; }
 
-  const today     = new Date().toISOString().slice(0,10);
-  const endDate   = (() => { const d = new Date(); d.setMonth(d.getMonth()+7); return d.toISOString().slice(0,10); })();
-  const statusEl  = document.getElementById("rot-status");
-  const btn       = document.getElementById("rot-rebalance-btn");
+  const endDate  = (() => { const d = new Date(fromDate); d.setMonth(d.getMonth()+12); return d.toISOString().slice(0,10); })();
+  const statusEl = document.getElementById("rot-status");
+  const btn      = document.getElementById("rot-rebalance-btn");
 
-  // Determine shift threshold
-  const shouldShift = rotDays >= 14 || n >= 14 || n === 7;
+  const orderLine = shuffle ? `• New shuffled order: ${activeEmps.map(e=>e.name).join(", ")}\n` : "";
+  if (!confirm(`This will:\n• Delete ALL on-call events from ${fromDate} onwards\n• Rebuild the schedule for ${n} active employees through ${endDate}\n${orderLine}\nContinue?`)) return;
 
   btn.disabled = true;
-  statusEl.textContent = "Finding events to rebalance...";
+  statusEl.textContent = "Backing up before rebalance...";
+  const backupOkReb = await backupCalendar(true);
+  if (!backupOkReb && !confirm("⚠️ Backup failed. Continue rebalancing WITHOUT a backup?")) { btn.disabled = false; return; }
 
-  // Step 1 — fetch all future on-call events
+  // Step 1 — fetch all on-call events from fromDate forward
+  statusEl.textContent = "Fetching events to delete...";
   let fetchUrl = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
-               + `?startDateTime=${today}T00:00:00&endDateTime=${endDate}T00:00:00`
+               + `?startDateTime=${fromDate}T00:00:00&endDateTime=${endDate}T00:00:00`
                + `&$top=999&$select=id,subject,start`;
-  const allEvents = [];
+  const toDelete = [];
   while (fetchUrl) {
     const r = await fetch(fetchUrl, { headers: { Authorization: `Bearer ${token}` } });
     const data = await r.json();
-    (data.value || []).forEach(ev => allEvents.push(ev));
+    (data.value || []).forEach(ev => {
+      const s = (ev.subject || "").toLowerCase();
+      if ((s.includes("on call") || s.includes("oncall")) && !s.includes("vacation"))
+        toDelete.push(ev);
+    });
     fetchUrl = data["@odata.nextLink"] || null;
   }
 
-  const oncallEvents = allEvents.filter(ev => {
-    const s = (ev.subject || "").toLowerCase();
-    return (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
+  // Step 2 — find who was last on call the day before fromDate (to continue pattern)
+  statusEl.textContent = "Finding rotation anchor...";
+  const anchorStart = addDays(fromDate, -14);
+  let anchorUrl = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+                + `?startDateTime=${anchorStart}T00:00:00&endDateTime=${fromDate}T00:00:00`
+                + `&$top=999&$select=subject,start`;
+  const anchorEvents = [];
+  while (anchorUrl) {
+    const r = await fetch(anchorUrl, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await r.json();
+    (data.value || []).forEach(ev => {
+      const s = (ev.subject || "").toLowerCase();
+      if ((s.includes("on call") || s.includes("oncall")) && !s.includes("vacation"))
+        anchorEvents.push(ev);
+    });
+    anchorUrl = data["@odata.nextLink"] || null;
+  }
+  // Find last assigned person before fromDate
+  anchorEvents.sort((a,b) => {
+    const da = a.start?.date || a.start?.dateTime?.slice(0,10);
+    const db = b.start?.date || b.start?.dateTime?.slice(0,10);
+    return db.localeCompare(da);
   });
-
-  // Step 2 — delete events for inactive employees
-  const toDelete = oncallEvents.filter(ev =>
-    inactiveNames.some(n => (ev.subject || "").toLowerCase().includes(n))
-  );
-
-  statusEl.textContent = `Removing ${toDelete.length} events for inactive employees...`;
-
-  let deleted = 0;
-  for (const ev of toDelete) {
-    const dr = await fetch(`https://graph.microsoft.com/v1.0/me/events/${ev.id}`, {
-      method: "DELETE", headers: { Authorization: `Bearer ${token}` }
-    });
-    if (dr.ok || dr.status === 204) deleted++;
-    await new Promise(res => setTimeout(res, 80));
-  }
-
-  // Step 3 — find occupied dates (remaining active events)
-  const remainingActive = oncallEvents
-    .filter(ev => !toDelete.includes(ev))
-    .map(ev => ev.start?.date || ev.start?.dateTime?.slice(0,10))
-    .filter(Boolean);
-  const occupiedDates = new Set(remainingActive);
-
-  // Step 4 — find last assigned person to continue rotation in order
-  // Sort remaining events by date and find who was last assigned
-  const sortedRemaining = oncallEvents
-    .filter(ev => !toDelete.includes(ev))
-    .sort((a,b) => {
-      const da = a.start?.date || a.start?.dateTime?.slice(0,10);
-      const db = b.start?.date || b.start?.dateTime?.slice(0,10);
-      return da > db ? -1 : 1;
-    });
-
   let startEmpIdx = 0;
-  if (sortedRemaining.length) {
-    const lastSubject = (sortedRemaining[0].subject || "").toLowerCase();
-    const lastPerson = activeEmps.findIndex(e => lastSubject.includes(e.name.toLowerCase()));
-    if (lastPerson >= 0) startEmpIdx = (lastPerson + 1) % n;
+  if (anchorEvents.length > 0) {
+    const lastSubj = (anchorEvents[0].subject || "").toLowerCase();
+    const lastIdx  = activeEmps.findIndex(e => lastSubj.includes(e.name.toLowerCase()));
+    if (lastIdx >= 0) startEmpIdx = (lastIdx + 1) % n;
   }
 
-  // Step 5 — generate and push new events for empty days
-  statusEl.textContent = "Filling empty days...";
-
-  const schedule = buildRotationSchedule(today, endDate, rotDays, activeEmps, occupiedDates);
-  const toAdd = schedule.filter(s => !s.occupied);
-
-  // Re-order starting from the correct employee in the rotation
-  // Assign based on position in the new schedule
-  let pushed = 0, failed = 0;
-  for (let i = 0; i < toAdd.length; i++) {
-    const person = activeEmps[(startEmpIdx + i) % n].name;
-    const endDay = addDays(toAdd[i].date, rotDays);
-    const body = JSON.stringify({
-      subject:  `${person} On Call`,
-      start:    { dateTime: `${toAdd[i].date}T00:00:00`, timeZone: "America/Toronto" },
-      end:      { dateTime: `${endDay}T00:00:00`, timeZone: "America/Toronto" },
-      isAllDay: true
-    });
+  // Step 3 — delete all events from fromDate forward
+  statusEl.textContent = `Deleting ${toDelete.length} events...`;
+  let deleted = 0;
+  for (let bi = 0; bi < toDelete.length; bi += 20) {
+    const chunk = toDelete.slice(bi, bi + 20);
+    const batchBody = { requests: chunk.map((ev, j) => ({ id: String(j+1), method: "DELETE", url: `/me/events/${ev.id}` })) };
     try {
-      const r = await fetch(`https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/events`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body
+      const r = await fetch("https://graph.microsoft.com/v1.0/$batch", {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(batchBody)
       });
-      if (r.ok) pushed++; else failed++;
-    } catch { failed++; }
-    await new Promise(res => setTimeout(res, 100));
+      if (r.ok) { const res = await r.json(); res.responses.forEach(resp => { if (resp.status < 300) deleted++; }); }
+    } catch {}
+    setProgress("clear-bar", "clear-progress", "clear-bar-label", Math.min(bi + 20, toDelete.length), toDelete.length, `${deleted} ✓`);
+    await new Promise(res => setTimeout(res, 300));
+  }
+  hideProgress("clear-progress");
+
+  // Step 4 — build fresh schedule from fromDate
+  statusEl.textContent = "Building new schedule...";
+  const newSchedule = buildRotationSchedule(fromDate, endDate, rotDays, activeEmps, new Set());
+  // Apply correct starting employee
+  newSchedule.forEach((s, i) => { s.person = activeEmps[(startEmpIdx + i) % n].name; });
+
+  // Step 5 — push new events in batches
+  let pushed = 0, failed = 0;
+  statusEl.textContent = `Pushing ${newSchedule.length} events...`;
+  for (let i = 0; i < newSchedule.length; i += 4) {
+    const chunk = newSchedule.slice(i, i + 4);
+    const batchBody = {
+      requests: chunk.map((s, j) => {
+        const endDay = addDays(s.date, rotDays);
+        return { id: String(j+1), method: "POST", url: `/me/calendars/${GRAPH_CAL_ID}/events`,
+          headers: { "Content-Type": "application/json" },
+          body: { subject: `${s.person} On Call`, start: { dateTime: `${s.date}T00:00:00`, timeZone: "America/Toronto" }, end: { dateTime: `${endDay}T00:00:00`, timeZone: "America/Toronto" }, isAllDay: true }
+        };
+      })
+    };
+    try {
+      const r = await fetch("https://graph.microsoft.com/v1.0/$batch", {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(batchBody)
+      });
+      if (r.ok) { const res = await r.json(); res.responses.forEach(resp => { if (resp.status >= 200 && resp.status < 300) pushed++; else failed++; }); }
+      else failed += chunk.length;
+    } catch { failed += chunk.length; }
+    setProgress("rot-bar", "rot-progress", "rot-bar-label", Math.min(i + 4, newSchedule.length), newSchedule.length, `${pushed} ✓`);
+    await new Promise(res => setTimeout(res, 200));
   }
 
+  hideProgress("rot-progress");
   btn.disabled = false;
-  const msg = `Rebalance complete!\n• ${deleted} removed (inactive employees)\n• ${pushed} new days assigned${failed ? `\n• ${failed} failed` : ""}\n• ${n} active employees${shouldShift ? " (day-shift applied)" : ""}`;
+  const msg = `Rebalance complete!\n• ${deleted} events deleted from ${fromDate} forward\n• ${pushed} new events created\n• ${n} active employees${failed ? `\n• ${failed} failed` : ""}`;
   statusEl.textContent = msg.replace(/\n/g, "  ");
   alert(msg);
+  await checkDuplicateOncall(token, statusEl);
 
+  mcalLoaded = false; initCalendar();
   const ghToken = document.getElementById("gh-token").value;
   if (ghToken) refreshCalendars();
+}
+
+// ── Calendar Backup & Restore ─────────────────────────────────────────────────
+
+async function fetchCurrentOncallEvents(msToken) {
+  const today = new Date().toISOString().slice(0,10);
+  const end   = new Date(); end.setMonth(end.getMonth()+12);
+  let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+          + `?startDateTime=${today}T00:00:00&endDateTime=${end.toISOString().slice(0,10)}T00:00:00`
+          + `&$top=999&$select=subject,start,end`;
+  const events = [];
+  while (url) {
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${msToken}` } });
+    const d = await r.json();
+    (d.value || []).forEach(e => {
+      const s = (e.subject || "").toLowerCase();
+      if ((s.includes("on call") || s.includes("oncall")) && !s.includes("vacation"))
+        events.push({ subject: e.subject, start: e.start.date || e.start.dateTime.slice(0,10), end: e.end.date || e.end.dateTime.slice(0,10) });
+    });
+    url = d["@odata.nextLink"] || null;
+  }
+  return events;
+}
+
+async function backupCalendar(silent = false) {
+  const msToken  = await getGraphToken();
+  const ghToken  = document.getElementById("gh-token").value;
+  if (!msToken)  { document.getElementById("backup-status").textContent = "❌ Backup failed: Not connected to Outlook."; return false; }
+  if (!ghToken)  { document.getElementById("backup-status").textContent = "❌ Backup failed: Admin login required."; return false; }
+
+  const statusEl = document.getElementById("backup-status");
+  if (!silent) statusEl.textContent = "Backing up...";
+
+  try {
+    console.log("Backup step 1: fetching events from Outlook...");
+    const events = await fetchCurrentOncallEvents(msToken);
+    console.log(`Backup step 2: encoding ${events.length} events...`);
+    const backup  = { backed_up: new Date().toISOString(), event_count: events.length, events };
+    const json    = JSON.stringify(backup, null, 2);
+    const encoded = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode(parseInt(p,16))));
+
+    console.log("Backup step 3: getting SHA from GitHub...");
+    const existing = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json?_=${Date.now()}`,
+      { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
+    const sha = existing.ok ? (await existing.json()).sha : undefined;
+    console.log(`Backup step 4: writing to GitHub (SHA=${sha ? sha.slice(0,8) : "new"})...`);
+
+    const resp = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json`, {
+      method: "PUT",
+      headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ message: `Backup: ${events.length} events [${new Date().toISOString().slice(0,16)} UTC]`, content: encoded, ...(sha ? { sha } : {}) })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(`GitHub write failed (${resp.status}): ${err.message || "unknown"}`);
+    }
+    console.log("Backup complete!");
+
+    const msg = `Backed up ${events.length} events at ${new Date().toLocaleTimeString()}`;
+    document.getElementById("backup-info").textContent = msg;
+    if (!silent) statusEl.textContent = "✅ " + msg;
+    return true;
+  } catch(e) {
+    const msg = "❌ Backup failed: " + e.message;
+    console.error("Backup error:", e);
+    document.getElementById("backup-status").textContent = msg;
+    return false;
+  }
+}
+
+async function manualBackup() {
+  await backupCalendar(false);
+}
+
+async function loadBackupInfo() {
+  const ghToken = document.getElementById("gh-token").value;
+  if (!ghToken) return;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json`,
+      { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
+    if (!r.ok) return;
+    const data = await r.json();
+    const backup = JSON.parse(decodeURIComponent(Array.from(atob(data.content.replace(/\n/g,""))).map(c=>('%'+('00'+c.charCodeAt(0).toString(16)).slice(-2))).join('')));
+    document.getElementById("backup-info").textContent = `Latest: ${new Date(backup.backed_up).toLocaleString()} — ${backup.event_count} events`;
+  } catch {}
+}
+
+async function loadBackupHistory() {
+  const ghToken = document.getElementById("gh-token").value;
+  if (!ghToken) { alert("Admin login required."); return; }
+  const statusEl = document.getElementById("backup-status");
+  statusEl.textContent = "Loading backup history...";
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/commits?path=docs/calendar_backup.json&per_page=20`,
+      { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
+    if (!r.ok) { statusEl.textContent = "❌ Could not load history."; return; }
+    const commits = await r.json();
+    const sel = document.getElementById("backup-version-select");
+    sel.innerHTML = '<option value="">— Select a backup version —</option>';
+    commits.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.sha;
+      opt.textContent = `${new Date(c.commit.author.date).toLocaleString()} — ${c.commit.message.replace("Backup: ","")}`;
+      sel.appendChild(opt);
+    });
+    document.getElementById("backup-history-wrap").style.display = "block";
+    document.getElementById("backup-diff").style.display = "none";
+    statusEl.textContent = `${commits.length} backup versions found.`;
+  } catch(e) { statusEl.textContent = "❌ " + e.message; }
+}
+
+async function getBackupAtCommit(sha, ghToken) {
+  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/docs/calendar_backup.json?ref=${sha}`,
+    { headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github+json" } });
+  if (!r.ok) throw new Error("Could not load backup version");
+  const data = await r.json();
+  return JSON.parse(decodeURIComponent(Array.from(atob(data.content.replace(/\n/g,""))).map(c=>('%'+('00'+c.charCodeAt(0).toString(16)).slice(-2))).join('')));
+}
+
+async function previewBackupDiff() {
+  const sha = document.getElementById("backup-version-select").value;
+  if (!sha) { alert("Please select a backup version."); return; }
+  const ghToken = document.getElementById("gh-token").value;
+  const msToken = await getGraphToken();
+  const diffEl  = document.getElementById("backup-diff");
+  const statusEl = document.getElementById("backup-status");
+  statusEl.textContent = "Comparing backup to current calendar...";
+
+  try {
+    const [backup, current] = await Promise.all([
+      getBackupAtCommit(sha, ghToken),
+      msToken ? fetchCurrentOncallEvents(msToken) : []
+    ]);
+
+    const backupDates = new Map(backup.events.map(e => [e.start, e.subject]));
+    const currentDates = new Map(current.map(e => [e.start, e.subject]));
+
+    const added   = [...currentDates.entries()].filter(([d]) => !backupDates.has(d));
+    const removed = [...backupDates.entries()].filter(([d]) => !currentDates.has(d));
+    const changed = [...backupDates.entries()].filter(([d, s]) => currentDates.has(d) && currentDates.get(d) !== s);
+
+    let html = `<strong>Comparing backup (${new Date(backup.backed_up).toLocaleString()}) to current calendar:</strong><br><br>`;
+    if (!added.length && !removed.length && !changed.length) {
+      html += "✅ No differences — calendar matches this backup.";
+    } else {
+      if (removed.length) html += `<span style="color:#dc2626">➖ ${removed.length} events in backup but missing from calendar:</span><br>` + removed.map(([d,s])=>`&nbsp;&nbsp;${d} — ${s}`).join("<br>") + "<br><br>";
+      if (added.length)   html += `<span style="color:#2d6a27">➕ ${added.length} events in calendar not in backup:</span><br>` + added.map(([d,s])=>`&nbsp;&nbsp;${d} — ${s}`).join("<br>") + "<br><br>";
+      if (changed.length) html += `<span style="color:#d97706">✏️ ${changed.length} events with different assignments:</span><br>` + changed.map(([d,s])=>`&nbsp;&nbsp;${d}: was "${s}", now "${currentDates.get(d)}"`).join("<br>");
+    }
+
+    diffEl.innerHTML = html;
+    diffEl.style.display = "block";
+    statusEl.textContent = `${removed.length} missing, ${added.length} added, ${changed.length} changed since this backup.`;
+  } catch(e) { statusEl.textContent = "❌ " + e.message; }
+}
+
+async function restoreCalendar() {
+  const sha     = document.getElementById("backup-version-select").value;
+  const ghToken = document.getElementById("gh-token").value;
+  const msToken = await getGraphToken();
+  if (!ghToken) { alert("Admin login required."); return; }
+  if (!msToken) return;
+
+  const statusEl = document.getElementById("backup-status");
+  statusEl.textContent = "Loading backup version...";
+
+  let backup;
+  try {
+    backup = sha ? await getBackupAtCommit(sha, ghToken)
+                 : await (await fetch(`${BASE_URL}/calendar_backup.json?cb=${Date.now()}`)).json();
+  } catch(e) { statusEl.textContent = "❌ Could not load backup."; return; }
+
+  if (!confirm(`Restore from backup:\n${new Date(backup.backed_up).toLocaleString()}\n${backup.event_count} events\n\nThe current calendar will be backed up first, then missing events recreated.`)) return;
+
+  statusEl.textContent = "Backing up current calendar before restore...";
+  await backupCalendar(true);
+
+  const btn = document.getElementById("restore-btn");
+  btn.disabled = true;
+
+  // Get existing dates to avoid duplicates
+  const current = await fetchCurrentOncallEvents(msToken);
+  const existing = new Set(current.map(e => e.start));
+
+  let restored = 0, skipped = 0, failed = 0;
+  const toRestore = backup.events.filter(e => !existing.has(e.start));
+  skipped = backup.events.length - toRestore.length;
+  statusEl.textContent = `Restoring ${toRestore.length} missing events...`;
+
+  for (let i = 0; i < toRestore.length; i += 4) {
+    const chunk = toRestore.slice(i, i + 4);
+    const batchBody = { requests: chunk.map((e, j) => ({
+      id: String(j+1), method: "POST", url: `/me/calendars/${GRAPH_CAL_ID}/events`,
+      headers: { "Content-Type": "application/json" },
+      body: { subject: e.subject, start: { dateTime: `${e.start}T00:00:00`, timeZone: "America/Toronto" }, end: { dateTime: `${e.end}T00:00:00`, timeZone: "America/Toronto" }, isAllDay: true }
+    }))};
+    try {
+      const r = await fetch("https://graph.microsoft.com/v1.0/$batch", {
+        method: "POST", headers: { Authorization: `Bearer ${msToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify(batchBody)
+      });
+      if (r.ok) { const res = await r.json(); res.responses.forEach(resp => { if (resp.status < 300) restored++; else failed++; }); }
+      else failed += chunk.length;
+    } catch { failed += chunk.length; }
+    setProgress("restore-bar", "restore-progress", "restore-bar-label", Math.min(i + 4, toRestore.length), toRestore.length, `${restored} ✓`);
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  hideProgress("restore-progress");
+  btn.disabled = false;
+  const msg = `Restore complete — ${restored} recreated, ${skipped} already existed${failed ? `, ${failed} failed` : ""}.`;
+  statusEl.textContent = msg;
+  alert(msg);
+  if (restored > 0) { mcalLoaded = false; initCalendar(); }
 }
 
 async function clearOncallEvents() {
@@ -1574,43 +2351,238 @@ async function clearOncallEvents() {
   }
 
   if (!confirm(`Delete ${toDelete.length} on-call event(s) between ${from} and ${to}?`)) {
-    statusEl.textContent = "";
-    btn.disabled = false;
+    statusEl.textContent = ""; btn.disabled = false;
     return;
   }
 
-  statusEl.textContent = `Deleting ${toDelete.length} events...`;
+  const backupOk = await backupCalendar(true);
+  if (!backupOk && !confirm("⚠️ Backup failed (check Outlook connection and admin login).\n\nContinue deleting WITHOUT a backup?")) {
+    btn.disabled = false; return;
+  }
+  statusEl.textContent = `Deleting ${toDelete.length} events in batches...`;
   let deleted = 0, failed = 0;
+  const BATCH_SIZE = 20;
 
-  for (const ev of toDelete) {
-    try {
-      const dr = await fetch(`https://graph.microsoft.com/v1.0/me/events/${ev.id}`, {
+  for (let i = 0; i < toDelete.length; i += BATCH_SIZE) {
+    const chunk = toDelete.slice(i, i + BATCH_SIZE);
+    const batchBody = {
+      requests: chunk.map((ev, j) => ({
+        id: String(j + 1),
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        url: `/me/events/${ev.id}`
+      }))
+    };
+    try {
+      const r = await fetch("https://graph.microsoft.com/v1.0/$batch", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(batchBody)
       });
-      if (dr.ok || dr.status === 204) {
-        deleted++;
-        console.log(`Deleted: ${ev.subject}`);
-      } else {
-        const errText = await dr.text();
-        console.error(`Failed to delete "${ev.subject}" (${ev.id}): ${dr.status} ${errText}`);
-        failed++;
-      }
-    } catch(e) { console.error("Delete exception:", e); failed++; }
-    await new Promise(res => setTimeout(res, 80));
+      if (r.ok) {
+        const result = await r.json();
+        result.responses.forEach(resp => {
+          if (resp.status >= 200 && resp.status < 300) deleted++;
+          else failed++;
+        });
+      } else { failed += chunk.length; }
+    } catch(e) { failed += chunk.length; }
+
+    setProgress("clear-bar", "clear-progress", "clear-bar-label", Math.min(i + BATCH_SIZE, toDelete.length), toDelete.length, `${deleted} ✓`);
+    await new Promise(res => setTimeout(res, 300)); // small pause between batches
   }
 
+  hideProgress("clear-progress");
   const msg = `Done — ${deleted} of ${toDelete.length} deleted${failed ? `, ${failed} failed` : ""}.`;
   statusEl.textContent = msg;
   alert(msg);
   btn.disabled = false;
 
+  if (deleted > 0) { mcalLoaded = false; initCalendar(); }
   const ghToken = document.getElementById("gh-token").value;
   if (ghToken && deleted > 0) refreshCalendars();
 }
 
+// ── Version check ────────────────────────────────────────────────────────────
+async function checkVersion() {
+  try {
+    const r = await fetch(`${BASE_URL}/version.json?cb=${Date.now()}`, { cache:"no-store" });
+    if (!r.ok) return;
+    const { version, updated } = await r.json();
+    const seen = localStorage.getItem("rbt_seen_version");
+    if (seen && seen !== version) {
+      document.getElementById("update-banner-text").textContent = `\u{1F195} New update available (${updated})`;
+      document.getElementById("update-banner").style.display = "flex";
+    }
+    localStorage.setItem("rbt_seen_version", version);
+  } catch {}
+}
+function dismissUpdate() {
+  document.getElementById("update-banner").style.display = "none";
+}
+
+// Poll every 5 minutes — shows banner automatically without needing a tab switch
+setInterval(checkVersion, 5 * 60 * 1000);
+
+// ── Month Calendar ────────────────────────────────────────────────────────────
+let mcalYear  = new Date().getFullYear();
+let mcalMonth = new Date().getMonth(); // 0-based
+let mcalEvents = {}; // { "YYYYMMDD": [{name, type}] }
+let mcalLoaded = false;
+
+async function loadAllIcsForCalendar() {
+  mcalEvents = {};
+  const token = await getGraphToken();
+
+  if (token) {
+    // Use Graph API — fetch from BOTH calendars (view cal for vacations, main cal for on-call)
+    const start = new Date(mcalYear, mcalMonth - 1, 1).toISOString().slice(0,10);
+    const end   = new Date(mcalYear, mcalMonth + 2, 1).toISOString().slice(0,10);
+    const allEvs = [];
+    const calIds = GRAPH_VIEW_CAL_ID === GRAPH_CAL_ID ? [GRAPH_CAL_ID] : [GRAPH_VIEW_CAL_ID, GRAPH_CAL_ID];
+    for (const calId of calIds) {
+      let url = `https://graph.microsoft.com/v1.0/me/calendars/${calId}/calendarView`
+              + `?startDateTime=${start}T00:00:00&endDateTime=${end}T00:00:00`
+              + `&$top=999&$select=subject,start,end`;
+      while (url) {
+        const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        const d = await r.json();
+        (d.value || []).forEach(e => allEvs.push(e));
+        url = d["@odata.nextLink"] || null;
+      }
+    }
+    allEvs.forEach(ev => {
+      const subj = ev.subject || "";
+      const s    = subj.toLowerCase();
+      const isOncall   = (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
+      const isVacation = s.includes("vacation");
+      if (!isOncall && !isVacation) return;
+      const type = isOncall ? "oncall" : "vacation";
+      // Extract person name — first word that isn't a keyword
+      const skip = new Set(["on","call","oncall","vacation","-","–"]);
+      const name = subj.split(/[\s\-–]+/).find(w => w.length > 1 && !skip.has(w.toLowerCase())) || subj.split(" ")[0];
+      const dtstart = (ev.start.date || ev.start.dateTime.slice(0,10)).replace(/-/g,"");
+      let dtend     = (ev.end.date   || ev.end.dateTime.slice(0,10)).replace(/-/g,"");
+      // If same day or no end, treat as 1-day event
+      if (!dtend || dtend <= dtstart) {
+        const dt = new Date(dtstart.slice(0,4)+"-"+dtstart.slice(4,6)+"-"+dtstart.slice(6,8)+"T12:00:00");
+        dt.setDate(dt.getDate()+1);
+        dtend = dt.toISOString().slice(0,10).replace(/-/g,"");
+      }
+      let d = dtstart;
+      while (d < dtend) {
+        if (!mcalEvents[d]) mcalEvents[d] = [];
+        if (!mcalEvents[d].some(x => x.name === name && x.type === type))
+          mcalEvents[d].push({ name, type });
+        const dt = new Date(d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8)+"T12:00:00");
+        dt.setDate(dt.getDate()+1);
+        d = dt.toISOString().slice(0,10).replace(/-/g,"");
+      }
+    });
+  } else {
+    // Fallback: ICS files for on-call employees only
+    const emps = (config.employees || []).filter(e => e.active !== false);
+    await Promise.all(emps.map(async emp => {
+      try {
+        const text = await (await fetch(`${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics?cb=${Date.now()}`)).text();
+        parseIcsEvents(text).forEach(ev => {
+          const s = ev.summary.toLowerCase();
+          const isOncall   = (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
+          const isVacation = s.includes("vacation");
+          if (!isOncall && !isVacation) return;
+          const type = isOncall ? "oncall" : "vacation";
+          if (isVacation && ev.dtend && ev.dtend !== ev.dtstart) {
+            let d = ev.dtstart;
+            while (d < ev.dtend) {
+              if (!mcalEvents[d]) mcalEvents[d] = [];
+              mcalEvents[d].push({ name: emp.name, type });
+              const dt = new Date(d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8)+"T12:00:00");
+              dt.setDate(dt.getDate()+1);
+              d = dt.toISOString().slice(0,10).replace(/-/g,"");
+            }
+          } else {
+            if (!mcalEvents[ev.dtstart]) mcalEvents[ev.dtstart] = [];
+            mcalEvents[ev.dtstart].push({ name: emp.name, type });
+          }
+        });
+      } catch {}
+    }));
+  }
+  mcalLoaded = true;
+}
+
+function renderMonthCalendar() {
+  const grid = document.getElementById("mcal-grid");
+  const title = document.getElementById("mcal-title");
+  const todayStr = today8();
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  title.textContent = `${monthNames[mcalMonth]} ${mcalYear}`;
+
+  const holidays = getCanadianHolidays(mcalYear);
+
+  // Day-of-week headers
+  const dows = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  let html = dows.map(d => `<div class="mcal-dow">${d}</div>`).join("");
+
+  // First day of month
+  const firstDay = new Date(mcalYear, mcalMonth, 1).getDay();
+  const daysInMonth = new Date(mcalYear, mcalMonth+1, 0).getDate();
+  const daysInPrev  = new Date(mcalYear, mcalMonth, 0).getDate();
+
+  // Prev month padding
+  for (let i = firstDay-1; i >= 0; i--) {
+    html += `<div class="mcal-day other-month"><div class="mcal-day-num" style="color:#d1d5db;">${daysInPrev-i}</div></div>`;
+  }
+
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${mcalYear}${String(mcalMonth+1).padStart(2,"0")}${String(d).padStart(2,"0")}`;
+    const isToday = dateStr === todayStr;
+    const dayEvents = mcalEvents[dateStr] || [];
+    const holiday   = holidays[dateStr];
+
+    const oncall  = dayEvents.filter(e => e.type === "oncall");
+    const vacation = dayEvents.filter(e => e.type === "vacation");
+
+    let pills = "";
+    if (holiday) pills += `<span class="mcal-pill holiday">&#x1F341; ${holiday}</span>`;
+    oncall.forEach(e  => pills += `<span class="mcal-pill oncall">${e.name}</span>`);
+    vacation.forEach(e => pills += `<span class="mcal-pill vacation">${e.name}</span>`);
+
+    html += `<div class="mcal-day${isToday?" today":""}">
+      <div class="mcal-day-num">${d}</div>
+      ${pills}
+    </div>`;
+  }
+
+  // Next month padding
+  const totalCells = firstDay + daysInMonth;
+  const remaining  = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="mcal-day other-month"><div class="mcal-day-num" style="color:#d1d5db;">${i}</div></div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+async function changeMonth(dir) {
+  mcalMonth += dir;
+  if (mcalMonth > 11) { mcalMonth = 0; mcalYear++; }
+  if (mcalMonth < 0)  { mcalMonth = 11; mcalYear--; }
+  mcalLoaded = false; // reload for new month window
+  await loadAllIcsForCalendar();
+  renderMonthCalendar();
+}
+
+async function initCalendar() {
+  await loadAllIcsForCalendar();
+  renderMonthCalendar();
+}
+
 handleOAuthCallback();
+restoreAdminSession();
 loadConfigAndCheck();
+checkVersion();
+switchTab(localStorage.getItem("rbt_active_tab") || "calendar");
 </script>
 </body>
 </html>

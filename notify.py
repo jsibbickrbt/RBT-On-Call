@@ -281,6 +281,23 @@ def main():
     if not oncall_today:
         print("  Nobody on call today")
 
+    # Duplicate on-call check — alert Jordan if any future date has 2+ people assigned
+    if len(oncall_today) > 1:
+        names = ", ".join(oncall_today)
+        print(f"  ⚠️ DUPLICATE: Multiple people on call today: {names}")
+        jordan_phone_now = ""
+        for emp in CONFIG["employees"]:
+            if emp["name"].lower() == "jordan" and emp.get("active", True):
+                jordan_phone_now = emp.get("phone", "")
+                break
+        if jordan_phone_now:
+            try:
+                send_sms(sid, token, from_num, jordan_phone_now,
+                         f"⚠️ Schedule conflict: Multiple people on call today ({names}). Please fix the calendar.")
+                print(f"  Duplicate alert sent to Jordan")
+            except Exception as e:
+                print(f"  Failed to send duplicate alert: {e}")
+
     # Daily conflict check — always runs and texts Jordan if any conflicts found
     jordan_phone = ""
     for emp in CONFIG["employees"]:
