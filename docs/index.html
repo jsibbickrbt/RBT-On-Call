@@ -379,6 +379,11 @@
 
 
 
+<!-- Dev banner -->
+<div style="background:#b45309;color:white;text-align:center;padding:6px;font-size:0.82rem;font-weight:700;letter-spacing:0.05em;">
+  &#x26A0; DEVELOPMENT ENVIRONMENT — Changes here do not affect production
+</div>
+
 <!-- Nav -->
 <nav>
   <a class="nav-logo" href="#">
@@ -777,8 +782,8 @@
 </div>
 
 <script>
-const REPO     = "jsibbickrbt/RBT-On-Call";
-const BASE_URL = "https://jsibbickrbt.github.io/RBT-On-Call";
+const REPO     = "jsibbickrbt/RBT-On-Call-Dev";
+const BASE_URL = "https://jsibbickrbt.github.io/RBT-On-Call-Dev";
 
 const TAB_LINK_IDS = { calendar: "tab-cal-link", setup: "tab-setup-link", directory: "tab-dir-link" };
 
@@ -1813,9 +1818,9 @@ async function loadConfigAndCheck() {
 const MS_CLIENT_ID  = "619ba349-9370-4f9d-a40a-832f3d43918b";
 const MS_TENANT_ID  = "c6742b62-ae1e-422e-8ade-06070424f6b6";
 // Dev: RBT DEV CAL | View reads from production calendar (has vacations)
-// Production: RBT WORK CALENDAR
-const GRAPH_CAL_ID      = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAAHInXdAAA=";
-const GRAPH_VIEW_CAL_ID = GRAPH_CAL_ID;
+// Dev: RBT DEV CAL | View reads from production calendar
+const GRAPH_CAL_ID      = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAJS1sEHAAA=";
+const GRAPH_VIEW_CAL_ID = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAAHInXdAAA=";
 let graphAccessToken = null;
 
 async function loadRotationOrders() {
