@@ -608,10 +608,12 @@ def main():
         active_emps = [e for e in CONFIG.get("employees", []) if e.get("active", True)]
         if active_emps:
             print("\nChecking 12-month on-call coverage...")
+            import traceback
             try:
                 topup_oncall_calendar(token, cal_id, active_emps)
             except Exception as e:
-                print(f"  Top-up failed (non-fatal): {e}")
+                print(f"  Top-up error: {e}")
+                traceback.print_exc()
 
 
 if __name__ == "__main__":
