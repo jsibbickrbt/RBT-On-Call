@@ -2677,25 +2677,50 @@ async function renderHolidayPanel() {
   const year = parseInt(sel.value) || new Date().getFullYear();
   const holidays = getCanadianHolidays(year);
   const todayStr = today8();
-
-  // Get actual on-call assignments from mcalEvents (already loaded)
   const rotOrder = rotationOrdersCache ? rotationOrdersCache[String(year)] : null;
+
+  // Fetch full year of scheduled on-call events from Outlook
+  body.innerHTML = `<div style="color:#9ca3af;font-size:0.82rem;padding:10px 0;">&#x23F3; Loading...</div>`;
+  const yearEvents = {};
+  const token = await getGraphToken();
+  if (token) {
+    let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+            + `?startDateTime=${year}-01-01T00:00:00&endDateTime=${year+1}-01-01T00:00:00`
+            + `&$top=999&$select=subject,start`;
+    while (url) {
+      try {
+        const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        const d = await r.json();
+        (d.value || []).forEach(ev => {
+          const s = (ev.subject || "").toLowerCase();
+          if ((s.includes("on call") || s.includes("oncall")) && !s.includes("vacation")) {
+            const dt = (ev.start.date || ev.start.dateTime.slice(0,10)).replace(/-/g,"");
+            const skip = new Set(["on","call","oncall","-","–"]);
+            const n = (ev.subject||"").split(/\s+/).find(w=>w.length>1&&!skip.has(w.toLowerCase()))||"";
+            yearEvents[dt] = n;
+          }
+        });
+        url = d["@odata.nextLink"] || null;
+      } catch { url = null; }
+    }
+  }
 
   const rows = Object.entries(holidays)
     .sort(([a],[b]) => a.localeCompare(b))
     .map(([d8, name]) => {
-      const isoDate = `${d8.slice(0,4)}-${d8.slice(4,6)}-${d8.slice(6,8)}`;
-      const assigned = (mcalEvents[d8] || []).find(e => e.type === "oncall");
+      const isoDate  = `${d8.slice(0,4)}-${d8.slice(4,6)}-${d8.slice(6,8)}`;
       const isPast   = d8 < todayStr;
-      let person, badge;
+      const scheduled = yearEvents[d8];
+      let badge;
 
-      if (assigned) {
-        person = assigned.name;
-        badge  = `<span class="mcal-pill oncall" style="display:inline-block;">${person}</span>`;
+      if (scheduled) {
+        // Actually scheduled — show as confirmed
+        badge = `<span class="mcal-pill oncall" style="display:inline-block;">${scheduled}</span>`;
       } else if (!isPast && rotOrder) {
-        person = projectOncallForDate(isoDate, rotOrder);
-        badge  = person
-          ? `<span style="font-size:0.75rem;color:#6b7280;font-style:italic;">&#x1F4CA; ${person} (projected)</span>`
+        // Not scheduled yet — project from rotation order
+        const projected = projectOncallForDate(isoDate, rotOrder);
+        badge = projected
+          ? `<span style="font-size:0.75rem;color:#6b7280;font-style:italic;">&#x1F4CA; ${projected} (projected)</span>`
           : `<span style="font-size:0.75rem;color:#d1d5db;">—</span>`;
       } else {
         badge = `<span style="font-size:0.75rem;color:#d1d5db;">—</span>`;
