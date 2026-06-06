@@ -515,8 +515,30 @@
         <input type="checkbox" id="rebalance-shuffle" style="width:16px;height:16px;cursor:pointer;" />
         <label for="rebalance-shuffle" style="font-size:0.82rem;color:#374151;cursor:pointer;">Shuffle order</label>
       </div>
-      <button class="btn-sm orange" id="rot-rebalance-btn" onclick="rebalanceRotation()">&#x2696; Rebalance from Date</button>
-      <span style="font-size:0.78rem;color:#6b7280;">Clears all events from selected date forward and rebuilds with active employees</span>
+      <button class="btn-sm orange" id="rot-rebalance-btn" onclick="openRebalanceModal()">&#x2696; Rebalance</button>
+    </div>
+
+    <!-- Rebalance scope modal -->
+    <div id="rebalance-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;">
+      <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+        <h2 style="font-size:1.1rem;font-weight:700;color:#1a2e14;margin-bottom:6px;">&#x2696; Rebalance Rotation</h2>
+        <p style="font-size:0.85rem;color:#6b7280;margin-bottom:18px;">Choose which period to rebuild. All on-call events in the selected range will be deleted and recreated.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="btn-solid" style="justify-content:flex-start;text-align:left;padding:12px 16px;" onclick="rebalanceRotation('current')">
+            <div style="font-weight:700;">&#x1F4C5; Current Year</div>
+            <div style="font-size:0.78rem;opacity:0.8;" id="reb-current-label"></div>
+          </button>
+          <button class="btn-solid" style="justify-content:flex-start;text-align:left;padding:12px 16px;background:#2563eb;" onclick="rebalanceRotation('next')">
+            <div style="font-weight:700;">&#x1F4C6; Next Year</div>
+            <div style="font-size:0.78rem;opacity:0.8;" id="reb-next-label"></div>
+          </button>
+          <button class="btn-solid" style="justify-content:flex-start;text-align:left;padding:12px 16px;background:#7c3aed;" onclick="rebalanceRotation('both')">
+            <div style="font-weight:700;">&#x1F501; Both Years</div>
+            <div style="font-size:0.78rem;opacity:0.8;" id="reb-both-label"></div>
+          </button>
+          <button class="btn-outline" onclick="closeRebalanceModal()">Cancel</button>
+        </div>
+      </div>
     </div>
     <div id="rot-preview" style="display:none;">
       <div style="font-size:0.8rem;color:#6b7280;margin-bottom:8px;" id="rot-summary"></div>
@@ -1949,14 +1971,44 @@ async function pushRotation() {
   }
 }
 
-async function rebalanceRotation() {
+function openRebalanceModal() {
+  const thisYear = new Date().getFullYear();
+  const nextYear = thisYear + 1;
+  const fromDate = document.getElementById("rebalance-from").value || new Date().toISOString().slice(0,10);
+  document.getElementById("reb-current-label").textContent = `From ${fromDate} through Dec 31, ${thisYear}`;
+  document.getElementById("reb-next-label").textContent    = `Jan 1 through Dec 31, ${nextYear}`;
+  document.getElementById("reb-both-label").textContent    = `From ${fromDate} through Dec 31, ${nextYear}`;
+  document.getElementById("rebalance-modal").style.display = "flex";
+}
+function closeRebalanceModal() {
+  document.getElementById("rebalance-modal").style.display = "none";
+}
+
+async function rebalanceRotation(scope) {
   const token = await getGraphToken();
   if (!token) return;
 
   let activeEmps = (config.employees || []).filter(e => e.active !== false);
   const rotDays  = parseInt(document.getElementById("rot-days").value) || 1;
   const shuffle  = document.getElementById("rebalance-shuffle").checked;
-  const fromDate = document.getElementById("rebalance-from").value;
+  const thisYear = new Date().getFullYear();
+  const nextYear = thisYear + 1;
+
+  // Determine fromDate and endDate based on scope
+  let fromDate, endDate;
+  if (scope === "current") {
+    fromDate = document.getElementById("rebalance-from").value || new Date().toISOString().slice(0,10);
+    endDate  = `${thisYear}-12-31`;
+  } else if (scope === "next") {
+    fromDate = `${nextYear}-01-01`;
+    endDate  = `${nextYear}-12-31`;
+  } else { // both
+    fromDate = document.getElementById("rebalance-from").value || new Date().toISOString().slice(0,10);
+    endDate  = `${nextYear}-12-31`;
+  }
+  // Override the rebalance-from input temporarily for the confirm message
+  const origFrom = document.getElementById("rebalance-from").value;
+  document.getElementById("rebalance-from").value = fromDate;
 
   // Shuffle order if requested (Fisher-Yates)
   if (shuffle) {
@@ -1968,16 +2020,16 @@ async function rebalanceRotation() {
   }
 
   const n = activeEmps.length;
+  if (!n) { alert("No active employees."); return; }
 
-  if (!n)        { alert("No active employees."); return; }
-  if (!fromDate) { alert("Please select a rebalance start date."); return; }
-
-  const endDate  = (() => { const d = new Date(fromDate); d.setMonth(d.getMonth()+12); return d.toISOString().slice(0,10); })();
   const statusEl = document.getElementById("rot-status");
   const btn      = document.getElementById("rot-rebalance-btn");
+  // Restore original from date after use
+  document.getElementById("rebalance-from").value = origFrom;
 
   const orderLine = shuffle ? `• New shuffled order: ${activeEmps.map(e=>e.name).join(", ")}\n` : "";
-  if (!confirm(`This will:\n• Delete ALL on-call events from ${fromDate} onwards\n• Rebuild the schedule for ${n} active employees through ${endDate}\n${orderLine}\nContinue?`)) return;
+  closeRebalanceModal();
+  if (!confirm(`This will:\n• Delete ALL on-call events from ${fromDate} onwards\n• Rebuild for ${n} active employees through ${endDate}\n${orderLine}\nContinue?`)) return;
 
   btn.disabled = true;
   statusEl.textContent = "Backing up before rebalance...";
