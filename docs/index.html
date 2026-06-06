@@ -454,6 +454,18 @@
         <div class="mcal-legend-item"><span class="mcal-pill vacation" style="display:inline-block;">Vacation</span></div>
         <div class="mcal-legend-item"><span class="mcal-pill holiday" style="display:inline-block;">&#x1F341; Stat Holiday</span></div>
       </div>
+
+      <!-- Stat Holiday On-Call Panel -->
+      <div style="margin-top:20px;background:white;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:1rem;font-weight:700;color:#1a2e14;">&#x1F341; Stat Holiday On-Call</div>
+          <select id="holiday-year-select" onchange="renderHolidayPanel()" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:0.85rem;">
+            <option id="hol-yr-cur"></option>
+            <option id="hol-yr-nxt"></option>
+          </select>
+        </div>
+        <div id="holiday-panel-body"></div>
+      </div>
     </div>
   </div>
 
@@ -2628,6 +2640,77 @@ async function changeMonth(dir) {
 async function initCalendar() {
   await loadAllIcsForCalendar();
   renderMonthCalendar();
+  initHolidayPanel();
+  renderHolidayPanel();
+}
+
+// ── Stat Holiday On-Call Panel ─────────────────────────────────────────────────
+let rotationOrdersCache = null;
+
+async function initHolidayPanel() {
+  const thisYear = new Date().getFullYear();
+  const cur = document.getElementById("hol-yr-cur");
+  const nxt = document.getElementById("hol-yr-nxt");
+  if (cur) { cur.value = thisYear; cur.textContent = thisYear; }
+  if (nxt) { nxt.value = thisYear + 1; nxt.textContent = thisYear + 1; }
+  // Load rotation orders
+  try {
+    const r = await fetch(`${BASE_URL}/rotation_orders.json?cb=${Date.now()}`);
+    if (r.ok) rotationOrdersCache = await r.json();
+  } catch {}
+}
+
+function projectOncallForDate(dateStr, rotationOrder) {
+  // Project who would be on call based on rotation order and day offset from Jan 1
+  if (!rotationOrder || !rotationOrder.length) return null;
+  const year = parseInt(dateStr.slice(0,4));
+  const jan1 = new Date(year, 0, 1);
+  const d    = new Date(dateStr + "T00:00:00");
+  const dayOfYear = Math.floor((d - jan1) / 86400000);
+  return rotationOrder[dayOfYear % rotationOrder.length];
+}
+
+async function renderHolidayPanel() {
+  const sel  = document.getElementById("holiday-year-select");
+  const body = document.getElementById("holiday-panel-body");
+  if (!sel || !body) return;
+  const year = parseInt(sel.value) || new Date().getFullYear();
+  const holidays = getCanadianHolidays(year);
+  const todayStr = today8();
+
+  // Get actual on-call assignments from mcalEvents (already loaded)
+  const rotOrder = rotationOrdersCache ? rotationOrdersCache[String(year)] : null;
+
+  const rows = Object.entries(holidays)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([d8, name]) => {
+      const isoDate = `${d8.slice(0,4)}-${d8.slice(4,6)}-${d8.slice(6,8)}`;
+      const assigned = (mcalEvents[d8] || []).find(e => e.type === "oncall");
+      const isPast   = d8 < todayStr;
+      let person, badge;
+
+      if (assigned) {
+        person = assigned.name;
+        badge  = `<span class="mcal-pill oncall" style="display:inline-block;">${person}</span>`;
+      } else if (!isPast && rotOrder) {
+        person = projectOncallForDate(isoDate, rotOrder);
+        badge  = person
+          ? `<span style="font-size:0.75rem;color:#6b7280;font-style:italic;">&#x1F4CA; ${person} (projected)</span>`
+          : `<span style="font-size:0.75rem;color:#d1d5db;">—</span>`;
+      } else {
+        badge = `<span style="font-size:0.75rem;color:#d1d5db;">—</span>`;
+      }
+
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6;">
+        <div>
+          <div style="font-size:0.875rem;font-weight:600;color:${isPast?"#9ca3af":"#1a2e14"};">&#x1F341; ${name}</div>
+          <div style="font-size:0.78rem;color:#6b7280;">${new Date(isoDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"})}</div>
+        </div>
+        <div>${badge}</div>
+      </div>`;
+    });
+
+  body.innerHTML = rows.join("") || `<p style="color:#9ca3af;font-size:0.85rem;">No holidays found.</p>`;
 }
 
 handleOAuthCallback();
