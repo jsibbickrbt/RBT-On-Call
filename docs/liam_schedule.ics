@@ -3,7 +3,7 @@ VERSION:2.0
 PRODID:-//Liam Schedule//EN
 CALNAME:Liam Schedule
 X-WR-CALNAME:Liam Schedule
-X-WR-CALDESC:Liam on-call and vacation schedule — auto-updated daily from RBT calendar
+X-WR-CALDESC:Liam on-call and vacation schedule — auto-updated daily from SkySuite calendar
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 REFRESH-INTERVAL;VALUE=DURATION:PT1H

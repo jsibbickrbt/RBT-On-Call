@@ -3,7 +3,7 @@ VERSION:2.0
 PRODID:-//Mike Schedule//EN
 CALNAME:Mike Schedule
 X-WR-CALNAME:Mike Schedule
-X-WR-CALDESC:Mike on-call and vacation schedule — auto-updated daily from RBT calendar
+X-WR-CALDESC:Mike on-call and vacation schedule — auto-updated daily from SkySuite calendar
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 REFRESH-INTERVAL;VALUE=DURATION:PT1H
