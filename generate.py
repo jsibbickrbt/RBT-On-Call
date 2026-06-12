@@ -47,8 +47,8 @@ def get_access_token():
 GRAPH_CALENDAR_ID = "AAMkADgyNTI3NzVmLTM4NDQtNDA3Ny04YzQwLWRlYTM5ZGE2YjI5YQBGAAAAAACcdVw86RQWTLoPvL7v1c0PBwBcnq76AxVQS6O842XYqNawAAAAAAEGAABcnq76AxVQS6O842XYqNawAAAHInXdAAA="
 
 def fetch_calendar_graph(access_token):
-    """Fetch all calendar events from Graph API (2-year window)."""
-    start = date.today().strftime("%Y-%m-%dT00:00:00")
+    """Fetch all calendar events from Graph API (30-day history + 2-year forward window)."""
+    start = (date.today() - timedelta(days=30)).strftime("%Y-%m-%dT00:00:00")
     end   = (date.today() + timedelta(days=730)).strftime("%Y-%m-%dT00:00:00")
     url   = (f"https://graph.microsoft.com/v1.0/me/calendars/{GRAPH_CALENDAR_ID}/calendarView"
              f"?startDateTime={start}&endDateTime={end}"
