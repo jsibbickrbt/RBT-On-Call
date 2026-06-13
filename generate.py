@@ -440,9 +440,10 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
     today    = date.today()
     end_date = today + timedelta(days=364)  # inclusive last day = today + 364
 
-    # Fetch ALL future on-call events (look a bit beyond 365 to catch over-runs)
-    look_end = today + timedelta(days=400)
-    start_str = today.strftime("%Y-%m-%dT00:00:00")
+    # Fetch on-call events: look back 7 days to catch any recent gaps, plus 400 days forward
+    look_back = today - timedelta(days=7)
+    look_end  = today + timedelta(days=400)
+    start_str = look_back.strftime("%Y-%m-%dT00:00:00")
     end_str   = look_end.strftime("%Y-%m-%dT00:00:00")
     url = (f"https://graph.microsoft.com/v1.0/me/calendars/{cal_id}/calendarView"
            f"?startDateTime={start_str}&endDateTime={end_str}"
@@ -517,16 +518,19 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
         print(f"  Calendar fully covered to {end_date} — no fill needed")
         return
 
-    # Step 3 — determine who continues the rotation
+    # Step 3 — determine who continues the rotation.
+    # IMPORTANT: look up last person's index in year_order (not active_employees),
+    # since year_idx is used to index into year_order during the fill loop.
     n = len(active_employees)
     last_person_idx = 0
     if within_window:
-        # Find person assigned on the last covered day
         last_ev = max(within_window, key=lambda x: x["date"])
         last_name = last_ev["subject"].split()[0].lower()
-        for i, emp in enumerate(active_employees):
-            if emp["name"].lower() == last_name:
-                last_person_idx = (i + 1) % n
+        last_date_obj = datetime.strptime(last_ev["date"], "%Y-%m-%d").date()
+        _, last_year_order = get_order_for_year(last_date_obj.year, active_employees, orders)
+        for i, order_name in enumerate(last_year_order):
+            if order_name.lower() == last_name:
+                last_person_idx = (i + 1) % len(last_year_order)
                 break
 
     print(f"  Filling {(end_date - fill_start).days + 1} days from {fill_start} to {end_date}...")
@@ -576,6 +580,7 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
         save_rotation_orders(orders)
 
     pushed = 0
+    error_count = 0
     for i in range(0, len(events_to_create), 4):
         batch = events_to_create[i:i+4]
         body = json.dumps({"requests": [
@@ -589,9 +594,14 @@ def topup_oncall_calendar(token, cal_id, active_employees, rotation_days=1):
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Accept": "application/json"})
         with urllib.request.urlopen(req) as r:
             result = json.loads(r.read())
-        pushed += sum(1 for resp in result.get("responses", []) if resp.get("status", 0) < 300)
+        for resp in result.get("responses", []):
+            if resp.get("status", 0) < 300:
+                pushed += 1
+            else:
+                error_count += 1
+                print(f"  Batch error {resp.get('status')}: {json.dumps(resp.get('body', {}))[:200]}")
 
-    print(f"  Rolling window top-up: {pushed} events added, {len(to_delete)} trimmed")
+    print(f"  Rolling window top-up: {pushed} events added, {len(to_delete)} trimmed, {error_count} errors")
 
 
 def main():
